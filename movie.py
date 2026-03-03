@@ -17,18 +17,10 @@ st.markdown("""
     .sub-title { color: #aaaaaa; font-size: 1.2rem; margin-bottom: 2rem; font-weight: 400; }
     .category-header { font-size: 1.5rem; color: #ffffff; font-weight: bold; margin-top: 2rem; margin-bottom: 1rem; border-left: 5px solid #E50914; padding-left: 10px; }
     
-    /* Upgraded Card for Posters and Descriptions */
     .movie-card { 
-        background: #181818;
-        padding: 15px; 
-        border-radius: 10px; 
-        text-align: center; 
-        box-shadow: 0 4px 15px rgba(0,0,0,0.5); 
-        height: 100%; 
-        display: flex;
-        flex-direction: column;
-        border: 1px solid #333;
-        transition: transform 0.2s;
+        background: #181818; padding: 15px; border-radius: 10px; text-align: center; 
+        box-shadow: 0 4px 15px rgba(0,0,0,0.5); height: 100%; display: flex;
+        flex-direction: column; border: 1px solid #333; transition: transform 0.2s;
     }
     .movie-card:hover { transform: scale(1.03); border-color: #E50914; }
     
@@ -67,7 +59,8 @@ def load_and_prep_data():
     ratings_count.rename(columns={'rating': 'num_of_ratings'}, inplace=True)
     
     genre_data = movies.drop(columns=['item_id', 'release_date', 'video_release_date', 'imdb_url', 'unknown'])
-    genre_data = genre_data.groupby('title').max()
+    # BULLETPROOF FIX: Force all genre data to be strict integers (0 or 1) so the math never crashes
+    genre_data = genre_data.groupby('title').max().apply(pd.to_numeric, errors='coerce').fillna(0).astype(int)
     
     return movie_matrix, ratings_count, genre_data, sorted(movies['title'].unique())
 
@@ -75,44 +68,34 @@ movie_matrix, ratings_count, genre_data, movie_list = load_and_prep_data()
 
 # --- API HELPER FUNCTIONS ---
 def clean_movie_title(title):
-    # Removes the year e.g. " (1995)"
     clean_title = re.sub(r'\s*\(\d{4}\)', '', title).strip()
-    # Fixes grammatical shifting e.g. "Matrix, The" -> "The Matrix"
     if clean_title.endswith(', The'):
         clean_title = 'The ' + clean_title[:-5]
     elif clean_title.endswith(', A'):
         clean_title = 'A ' + clean_title[:-3]
     return clean_title
 
-@st.cache_data(ttl=86400) # Cache API calls for 24 hours so it stays fast
+@st.cache_data(ttl=86400) 
 def fetch_movie_details(movie_title):
     search_title = clean_movie_title(movie_title)
     url = f"https://api.themoviedb.org/3/search/movie?api_key={API_KEY}&query={search_title}"
-    
     try:
         response = requests.get(url)
         data = response.json()
         if data['results']:
             movie = data['results'][0]
-            
-            # 1. Poster URL
             poster_path = movie.get('poster_path')
             poster_url = f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else "https://via.placeholder.com/500x750?text=No+Poster"
             
-            # 2. Overview (Truncate if too long)
             overview = movie.get('overview', 'No description available.')
-            if len(overview) > 120:
-                overview = overview[:117] + "..."
+            if len(overview) > 120: overview = overview[:117] + "..."
                 
-            # 3. TMDB Movie Link
             movie_id = movie.get('id')
             movie_link = f"https://www.themoviedb.org/movie/{movie_id}"
             
             return poster_url, overview, movie_link
     except:
         pass
-    
-    # Fallback if API fails or movie isn't found
     return "https://via.placeholder.com/500x750?text=No+Poster", "Description not found.", "#"
 
 # --- CORE ALGORITHMS ---
@@ -124,14 +107,14 @@ def get_collaborative_recs(movie_name, min_reviews=50):
     corr_movie = corr_movie.join(ratings_count['num_of_ratings'])
     recs = corr_movie[corr_movie['num_of_ratings'] > min_reviews].copy()
     recs['CF_Score'] = ((recs['CF_Score'] + 1) / 2) * 100 
-    return recs.sort_values('CF_Score', ascending=False).drop(movie_name, errors='ignore')
+    return recs.sort_values('CF_Score', ascending=False) # Dropped the hide feature
 
 def get_content_based_recs(movie_name):
     cosine_sim = cosine_similarity(genre_data)
     sim_df = pd.DataFrame(cosine_sim, index=genre_data.index, columns=genre_data.index)
     movie_scores = sim_df[movie_name] * 100 
     recs = movie_scores.to_frame(name='CB_Score')
-    return recs.sort_values('CF_Score', ascending=False).drop(movie_name, errors='ignore')
+    return recs.sort_values('CB_Score', ascending=False) # Dropped the hide feature
 
 def get_hybrid_recs(movie_name, min_reviews=50):
     cf_recs = get_collaborative_recs(movie_name, min_reviews)
@@ -144,8 +127,6 @@ def get_hybrid_recs(movie_name, min_reviews=50):
 def render_movie_cards(recommendations, score_column, model_type):
     cols = st.columns(5)
     for i, (index, row) in enumerate(recommendations.head(5).iterrows()):
-        
-        # Fetch live data from TMDB API
         poster_url, overview, movie_link = fetch_movie_details(index)
 
         with cols[i]:
@@ -163,7 +144,6 @@ def render_movie_cards(recommendations, score_column, model_type):
 st.markdown('<p class="main-title">CineMatch</p>', unsafe_allow_html=True)
 st.markdown('<p class="sub-title">Movies, shows, and more. Tailored to you.</p>', unsafe_allow_html=True)
 
-# Search Bar Area
 col1, col2 = st.columns([4, 1])
 selected_movie = col1.selectbox("Search for a movie:", movie_list, label_visibility="collapsed")
 generate_btn = col2.button("Find Movies", type="primary", use_container_width=True)
@@ -171,26 +151,23 @@ generate_btn = col2.button("Find Movies", type="primary", use_container_width=Tr
 if generate_btn:
     with st.spinner('Fetching movie posters and curating your dashboard...'):
         
-        # ROW 1: Hybrid Model
         st.markdown('<p class="category-header">✨ Top Picks For You</p>', unsafe_allow_html=True)
         try:
             hy_recs = get_hybrid_recs(selected_movie)
             render_movie_cards(hy_recs, 'Hybrid_Score', 'Hybrid')
         except Exception as e:
-            st.error("Could not calculate Top Picks for this movie.")
+            st.error(f"Error calculating Top Picks. Python Error: {e}")
             
-        # ROW 2: Collaborative Model
         st.markdown('<p class="category-header">👥 What The Community Is Watching</p>', unsafe_allow_html=True)
         try:
             cf_recs = get_collaborative_recs(selected_movie)
             render_movie_cards(cf_recs, 'CF_Score', 'CF')
         except Exception as e:
-            st.error("Not enough community data for this title.")
+            st.error(f"Error calculating community data. Python Error: {e}")
         
-        # ROW 3: Content-Based
         st.markdown('<p class="category-header">🎭 Similar Vibe & Genres</p>', unsafe_allow_html=True)
         try:
             cb_recs = get_content_based_recs(selected_movie)
             render_movie_cards(cb_recs, 'CB_Score', 'CB')
         except Exception as e:
-            st.error("Error generating genre recommendations.")
+            st.error(f"Error generating genre recommendations. Python Error: {e}")
