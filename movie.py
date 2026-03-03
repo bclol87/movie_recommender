@@ -4,15 +4,40 @@ import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 
 # --- PAGE CONFIGURATION & CSS ---
-st.set_page_config(page_title="CineMatch | Unified Recommender", page_icon="🍿", layout="wide")
+st.set_page_config(page_title="CineMatch", page_icon="🍿", layout="wide")
 
 st.markdown("""
     <style>
-    .main-title { font-size: 3.5rem; color: #E50914; text-align: center; font-weight: 900; margin-bottom: 0px; }
-    .sub-title { text-align: center; color: #b3b3b3; font-size: 1.2rem; margin-bottom: 2rem; }
-    .movie-card { background-color: #1e1e1e; padding: 15px; border-radius: 12px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3); height: 100%; border: 1px solid #333; }
-    .match-score { color: #46d369; font-weight: bold; font-size: 1.2rem; margin-bottom: 5px;}
-    .detail-text { font-size: 0.8rem; color: #aaa; margin-top: 0px; line-height: 1.4; }
+    /* Main website background and text */
+    .main-title { font-size: 4rem; color: #E50914; font-weight: 900; margin-bottom: 0px; letter-spacing: -1px; }
+    .sub-title { color: #b3b3b3; font-size: 1.2rem; margin-bottom: 2rem; font-weight: 400; }
+    
+    /* Sleek Category Headers */
+    .category-header { font-size: 1.5rem; color: #ffffff; font-weight: bold; margin-top: 2rem; margin-bottom: 1rem; border-left: 5px solid #E50914; padding-left: 10px; }
+    
+    /* Tall, poster-like movie cards */
+    .movie-card { 
+        background: linear-gradient(180deg, #2b2b2b 0%, #141414 100%);
+        padding: 20px 15px; 
+        border-radius: 8px; 
+        text-align: center; 
+        box-shadow: 0 4px 15px rgba(0,0,0,0.5); 
+        height: 220px; /* Forces a tall rectangle shape */
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        border: 1px solid #333;
+        transition: transform 0.2s;
+    }
+    .movie-card:hover { transform: scale(1.05); border-color: #E50914; }
+    
+    .movie-title { font-size: 1.1rem; color: white; font-weight: bold; margin-bottom: 10px; line-height: 1.2; }
+    .match-score { color: #46d369; font-weight: bold; font-size: 1.1rem; margin-bottom: 5px;}
+    .detail-text { font-size: 0.75rem; color: #aaa; margin-top: auto; line-height: 1.4; }
+    
+    /* Hide Streamlit default styling elements */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
     </style>
 """, unsafe_allow_html=True)
 
@@ -41,104 +66,89 @@ def load_and_prep_data():
 
 movie_matrix, ratings_count, genre_data, movie_list = load_and_prep_data()
 
-# --- ALGORITHM 1: COLLABORATIVE FILTERING ---
+# --- CORE ALGORITHMS ---
 def get_collaborative_recs(movie_name, min_reviews=50):
     user_movie_rating = movie_matrix[movie_name]
     similar_movies = movie_matrix.corrwith(user_movie_rating)
-    
     corr_movie = similar_movies.to_frame(name='CF_Score')
     corr_movie.dropna(inplace=True)
     corr_movie = corr_movie.join(ratings_count['num_of_ratings'])
-    
     recs = corr_movie[corr_movie['num_of_ratings'] > min_reviews].copy()
     recs['CF_Score'] = ((recs['CF_Score'] + 1) / 2) * 100 
     return recs.sort_values('CF_Score', ascending=False).drop(movie_name, errors='ignore')
 
-# --- ALGORITHM 2: CONTENT-BASED FILTERING ---
 def get_content_based_recs(movie_name):
     cosine_sim = cosine_similarity(genre_data)
     sim_df = pd.DataFrame(cosine_sim, index=genre_data.index, columns=genre_data.index)
-    
     movie_scores = sim_df[movie_name] * 100 
     recs = movie_scores.to_frame(name='CB_Score')
     return recs.sort_values('CB_Score', ascending=False).drop(movie_name, errors='ignore')
 
-# --- ALGORITHM 3: HYBRID MODEL ---
 def get_hybrid_recs(movie_name, min_reviews=50):
     cf_recs = get_collaborative_recs(movie_name, min_reviews)
     cb_recs = get_content_based_recs(movie_name)
-    
     hybrid_df = cf_recs.join(cb_recs, how='inner')
     hybrid_df['Hybrid_Score'] = (hybrid_df['CF_Score'] * 0.5) + (hybrid_df['CB_Score'] * 0.5)
     return hybrid_df.sort_values('Hybrid_Score', ascending=False)
 
-# --- HELPER FUNCTION TO RENDER UI CARDS WITH DETAILS ---
+# --- HELPER FUNCTION TO RENDER UI CARDS ---
 def render_movie_cards(recommendations, score_column, model_type):
     cols = st.columns(5)
     for i, (index, row) in enumerate(recommendations.head(5).iterrows()):
         
-        # Determine the explainable AI text based on the model type
         detail_text = ""
         if model_type == "CF":
-            detail_text = f"Similar users liked this<br><b>({int(row['num_of_ratings'])} reviews)</b>"
-        
+            detail_text = f"Similar users liked this<br>({int(row['num_of_ratings'])} community reviews)"
         elif model_type == "CB":
-            # Extract the actual genres for this specific movie
             genres = genre_data.loc[index]
             active_genres = genres[genres == 1].index.tolist()
-            detail_text = f"Shared Genres:<br><b>{', '.join(active_genres[:3])}</b>"
-            
+            detail_text = f"Matches your genres:<br>{', '.join(active_genres[:3])}"
         elif model_type == "Hybrid":
             genres = genre_data.loc[index]
             active_genres = genres[genres == 1].index.tolist()
-            detail_text = f"Top Rated + Genres:<br><b>{', '.join(active_genres[:2])}</b>"
+            detail_text = f"Top Rated + Genres:<br>{', '.join(active_genres[:2])}"
 
         with cols[i]:
             st.markdown(f'''
                 <div class="movie-card">
-                    <h4 style="margin-bottom: 5px; font-size: 1.1rem;">🎬 {index}</h4>
-                    <p class="match-score">{row[score_column]:.0f}% Match</p>
-                    <p class="detail-text">{detail_text}</p>
+                    <div class="movie-title">{index}</div>
+                    <div class="match-score">{row[score_column]:.0f}% Match</div>
+                    <div class="detail-text">{detail_text}</div>
                 </div>
             ''', unsafe_allow_html=True)
 
-# --- UI LAYOUT ---
-st.markdown('<p class="main-title">🍿 CineMatch</p>', unsafe_allow_html=True)
-st.markdown('<p class="sub-title">Compare all 3 models side-by-side</p>', unsafe_allow_html=True)
+# --- MAIN UI LAYOUT ---
+st.markdown('<p class="main-title">CineMatch</p>', unsafe_allow_html=True)
+st.markdown('<p class="sub-title">Movies, shows, and more. Tailored to you.</p>', unsafe_allow_html=True)
 
-st.markdown("### Choose a movie to test the algorithms:")
+# Search Bar Area
 col1, col2 = st.columns([4, 1])
 selected_movie = col1.selectbox("Search for a movie:", movie_list, label_visibility="collapsed")
-generate_btn = col2.button("Run All Models", type="primary", use_container_width=True)
-
-st.divider()
+generate_btn = col2.button("Find Movies", type="primary", use_container_width=True)
 
 if generate_btn:
-    with st.spinner('Running algorithms...'):
+    with st.spinner('Curating your personal dashboard...'):
         
-        st.subheader("👥 Member 1: Collaborative Filtering (User Ratings)")
-        try:
-            cf_recs = get_collaborative_recs(selected_movie)
-            render_movie_cards(cf_recs, 'CF_Score', 'CF')
-        except Exception as e:
-            st.error(f"Not enough data to calculate collaborative score. Error: {e}")
-            
-        st.write("") 
-        st.write("")
-        
-        st.subheader("📖 Member 2: Content-Based Filtering (Movie Genres)")
-        try:
-            cb_recs = get_content_based_recs(selected_movie)
-            render_movie_cards(cb_recs, 'CB_Score', 'CB')
-        except Exception as e:
-            st.error(f"Error generating content-based recommendations: {e}")
-
-        st.write("")
-        st.write("")
-        
-        st.subheader("🤖 Member 3: The Hybrid Model (50% CF + 50% CB)")
+        # ROW 1: Hybrid Model (The "Best" recommendations)
+        st.markdown('<p class="category-header">✨ Top Picks For You</p>', unsafe_allow_html=True)
         try:
             hy_recs = get_hybrid_recs(selected_movie)
             render_movie_cards(hy_recs, 'Hybrid_Score', 'Hybrid')
         except Exception as e:
-            st.error(f"Could not calculate a combined hybrid score for this movie. Error: {e}")
+            st.error("Could not calculate Top Picks for this movie.")
+            
+        # ROW 2: Collaborative Model (Community driven)
+        st.markdown('<p class="category-header">👥 What The Community Is Watching</p>', unsafe_allow_html=True)
+        try:
+            cf_recs = get_collaborative_recs(selected_movie)
+            render_movie_cards(cf_recs, 'CF_Score', 'CF')
+        except Exception as e:
+            st.error("Not enough community data for this title.")
+        
+        # ROW 3: Content-Based (Genre driven)
+        st.markdown('<p class="category-header">🎭 Similar Vibe & Genres</p>', unsafe_allow_html=True)
+        try:
+            cb_recs = get_content_based_recs(selected_movie)
+            render_movie_cards(cb_recs, 'CB_Score', 'CB')
+        except Exception as e:
+            st.error("Error generating genre recommendations.")
