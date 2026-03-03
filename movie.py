@@ -15,8 +15,6 @@ st.markdown("""
     <style>
     .main-title { font-size: 4rem; color: #E50914; font-weight: 900; margin-bottom: 0px; letter-spacing: -1px; }
     .sub-title { color: #555555; font-size: 1.2rem; margin-bottom: 2rem; font-weight: 400; }
-    
-    /* FIX: Changed to #000000 (Black) so all three headers are visible */
     .category-header { font-size: 1.5rem; color: #000000; font-weight: bold; margin-top: 2rem; margin-bottom: 1rem; border-left: 5px solid #E50914; padding-left: 10px; }
     
     .movie-card { 
@@ -61,12 +59,14 @@ def load_and_prep_data():
     ratings_count.rename(columns={'rating': 'num_of_ratings'}, inplace=True)
     
     genre_data = movies.drop(columns=['item_id', 'release_date', 'video_release_date', 'imdb_url', 'unknown'])
-    # BULLETPROOF FIX: Force all genre data to be strict integers (0 or 1) so the math never crashes
     genre_data = genre_data.groupby('title').max().apply(pd.to_numeric, errors='coerce').fillna(0).astype(int)
     
-    return movie_matrix, ratings_count, genre_data, sorted(movies['title'].unique())
+    # Create a list of genres for the dropdown filter
+    genre_list = ['All Genres'] + [col for col in movie_cols if col not in ['item_id', 'title', 'release_date', 'video_release_date', 'imdb_url', 'unknown']]
+    
+    return movie_matrix, ratings_count, genre_data, sorted(movies['title'].unique()), genre_list
 
-movie_matrix, ratings_count, genre_data, movie_list = load_and_prep_data()
+movie_matrix, ratings_count, genre_data, movie_list, genre_list = load_and_prep_data()
 
 # --- API HELPER FUNCTIONS ---
 def clean_movie_title(title):
@@ -109,14 +109,14 @@ def get_collaborative_recs(movie_name, min_reviews=50):
     corr_movie = corr_movie.join(ratings_count['num_of_ratings'])
     recs = corr_movie[corr_movie['num_of_ratings'] > min_reviews].copy()
     recs['CF_Score'] = ((recs['CF_Score'] + 1) / 2) * 100 
-    return recs.sort_values('CF_Score', ascending=False) # Dropped the hide feature
+    return recs.sort_values('CF_Score', ascending=False)
 
 def get_content_based_recs(movie_name):
     cosine_sim = cosine_similarity(genre_data)
     sim_df = pd.DataFrame(cosine_sim, index=genre_data.index, columns=genre_data.index)
     movie_scores = sim_df[movie_name] * 100 
     recs = movie_scores.to_frame(name='CB_Score')
-    return recs.sort_values('CB_Score', ascending=False) # Dropped the hide feature
+    return recs.sort_values('CB_Score', ascending=False)
 
 def get_hybrid_recs(movie_name, min_reviews=50):
     cf_recs = get_collaborative_recs(movie_name, min_reviews)
@@ -125,10 +125,25 @@ def get_hybrid_recs(movie_name, min_reviews=50):
     hybrid_df['Hybrid_Score'] = (hybrid_df['CF_Score'] * 0.5) + (hybrid_df['CB_Score'] * 0.5)
     return hybrid_df.sort_values('Hybrid_Score', ascending=False)
 
+# --- FILTER HELPER ---
+def filter_by_genre(recommendations, selected_genre):
+    if selected_genre == 'All Genres':
+        return recommendations
+    valid_movies = genre_data[genre_data[selected_genre] == 1].index
+    return recommendations[recommendations.index.isin(valid_movies)]
+
 # --- HELPER FUNCTION TO RENDER UI CARDS ---
 def render_movie_cards(recommendations, score_column, model_type):
-    cols = st.columns(5)
-    for i, (index, row) in enumerate(recommendations.head(5).iterrows()):
+    if recommendations.empty:
+        st.info("No movies matched your genre filter for this category.")
+        return
+
+    top_recs = recommendations.head(5)
+    
+    # Dynamically create columns based on how many movies are left after filtering
+    cols = st.columns(max(len(top_recs), 1)) 
+    
+    for i, (index, row) in enumerate(top_recs.iterrows()):
         poster_url, overview, movie_link = fetch_movie_details(index)
 
         with cols[i]:
@@ -146,16 +161,21 @@ def render_movie_cards(recommendations, score_column, model_type):
 st.markdown('<p class="main-title">CineMatch</p>', unsafe_allow_html=True)
 st.markdown('<p class="sub-title">Movies, shows, and more. Tailored to you.</p>', unsafe_allow_html=True)
 
-col1, col2 = st.columns([4, 1])
+# Search Bar Area (Upgraded with 3 Columns)
+col1, col2, col3 = st.columns([3, 1.5, 1])
 selected_movie = col1.selectbox("Search for a movie:", movie_list, label_visibility="collapsed")
-generate_btn = col2.button("Find Movies", type="primary", use_container_width=True)
+selected_genre = col2.selectbox("Filter by genre:", genre_list, label_visibility="collapsed")
+generate_btn = col3.button("Find Movies", type="primary", use_container_width=True)
+
+st.divider()
 
 if generate_btn:
-    with st.spinner('Fetching movie posters and curating your dashboard...'):
+    with st.spinner(f'Curating dashboard (Filter: {selected_genre})...'):
         
         st.markdown('<p class="category-header">✨ Top Picks For You</p>', unsafe_allow_html=True)
         try:
             hy_recs = get_hybrid_recs(selected_movie)
+            hy_recs = filter_by_genre(hy_recs, selected_genre)
             render_movie_cards(hy_recs, 'Hybrid_Score', 'Hybrid')
         except Exception as e:
             st.error(f"Error calculating Top Picks. Python Error: {e}")
@@ -163,6 +183,7 @@ if generate_btn:
         st.markdown('<p class="category-header">👥 What The Community Is Watching</p>', unsafe_allow_html=True)
         try:
             cf_recs = get_collaborative_recs(selected_movie)
+            cf_recs = filter_by_genre(cf_recs, selected_genre)
             render_movie_cards(cf_recs, 'CF_Score', 'CF')
         except Exception as e:
             st.error(f"Error calculating community data. Python Error: {e}")
@@ -170,6 +191,7 @@ if generate_btn:
         st.markdown('<p class="category-header">🎭 Similar Vibe & Genres</p>', unsafe_allow_html=True)
         try:
             cb_recs = get_content_based_recs(selected_movie)
+            cb_recs = filter_by_genre(cb_recs, selected_genre)
             render_movie_cards(cb_recs, 'CB_Score', 'CB')
         except Exception as e:
             st.error(f"Error generating genre recommendations. Python Error: {e}")
