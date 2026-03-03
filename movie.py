@@ -5,43 +5,106 @@ import requests
 import re
 from sklearn.metrics.pairwise import cosine_similarity
 
-# --- TMDB API CONFIGURATION ---
-API_KEY = "3eb39709869b67fd15b086e095c5cbec"
+# ===============================
+# CONFIG
+# ===============================
+API_KEY = "YOUR_TMDB_API_KEY"
 
-# --- PAGE CONFIGURATION ---
 st.set_page_config(page_title="CineMatch", page_icon="🍿", layout="wide")
 
-# --- CUSTOM CSS ---
+# ===============================
+# PREMIUM CSS
+# ===============================
 st.markdown("""
-    <style>
-    .main-title { font-size: 4rem; color: #E50914; font-weight: 900; }
-    .sub-title { color: #555555; font-size: 1.2rem; margin-bottom: 2rem; }
-    .category-header { font-size: 1.5rem; font-weight: bold; margin-top: 2rem; }
-    .movie-card { 
-        background: #181818; padding: 15px; border-radius: 10px; 
-        text-align: center; color: white;
-    }
-    </style>
+<style>
+
+/* Background Gradient */
+[data-testid="stAppViewContainer"] {
+    background: linear-gradient(135deg, #141E30, #243B55);
+    color: white;
+}
+
+/* Hide Streamlit Menu */
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+
+/* Titles */
+.main-title {
+    font-size: 4rem;
+    font-weight: 900;
+    text-align: center;
+    background: -webkit-linear-gradient(#E50914, #ff6a00);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.sub-title {
+    text-align: center;
+    font-size: 1.2rem;
+    color: #dddddd;
+    margin-bottom: 2rem;
+}
+
+/* Glass Card */
+.glass-card {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(12px);
+    padding: 20px;
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.37);
+    transition: 0.3s;
+}
+
+.glass-card:hover {
+    transform: scale(1.03);
+}
+
+/* Score Badge */
+.score-badge {
+    background: linear-gradient(45deg, #00c853, #64dd17);
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 0.9rem;
+    display: inline-block;
+    margin-bottom: 10px;
+}
+
+/* Section Header */
+.section-header {
+    font-size: 1.8rem;
+    font-weight: bold;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    border-left: 6px solid #E50914;
+    padding-left: 10px;
+}
+
+</style>
 """, unsafe_allow_html=True)
 
-# --- DATA LOADING ---
+# ===============================
+# LOAD DATA
+# ===============================
 @st.cache_data
 def load_and_prep_data():
     column_names = ['user_id', 'item_id', 'rating', 'timestamp']
     ratings = pd.read_csv('ml-100k/u.data', sep='\t', names=column_names)
 
-    movie_cols = ['item_id', 'title', 'release_date', 'video_release_date', 'imdb_url', 'unknown', 
-                  'Action', 'Adventure', 'Animation', 'Children', 'Comedy', 'Crime', 'Documentary', 
-                  'Drama', 'Fantasy', 'Film-Noir', 'Horror', 'Musical', 'Mystery', 'Romance', 
-                  'Sci-Fi', 'Thriller', 'War', 'Western']
+    movie_cols = ['item_id', 'title', 'release_date', 'video_release_date', 'imdb_url', 'unknown',
+                  'Action', 'Adventure', 'Animation', 'Children', 'Comedy', 'Crime',
+                  'Documentary', 'Drama', 'Fantasy', 'Film-Noir', 'Horror', 'Musical',
+                  'Mystery', 'Romance', 'Sci-Fi', 'Thriller', 'War', 'Western']
 
     movies = pd.read_csv('ml-100k/u.item', sep='|', encoding='latin-1',
                          header=None, names=movie_cols)
 
-    merged_df = pd.merge(ratings, movies[['item_id', 'title']], on='item_id')
-    movie_matrix = merged_df.pivot_table(index='user_id', columns='title', values='rating')
+    merged = pd.merge(ratings, movies[['item_id', 'title']], on='item_id')
+    movie_matrix = merged.pivot_table(index='user_id',
+                                      columns='title',
+                                      values='rating')
 
-    ratings_count = pd.DataFrame(merged_df.groupby('title')['rating'].count())
+    ratings_count = merged.groupby('title')['rating'].count().to_frame()
     ratings_count.rename(columns={'rating': 'num_of_ratings'}, inplace=True)
 
     genre_data = movies.drop(columns=['item_id', 'release_date',
@@ -55,7 +118,9 @@ def load_and_prep_data():
 
 ratings, movie_matrix, ratings_count, genre_data, movie_list, genre_list = load_and_prep_data()
 
-# --- API HELPER ---
+# ===============================
+# TMDB HELPERS
+# ===============================
 def clean_movie_title(title):
     clean_title = re.sub(r'\s*\(\d{4}\)', '', title).strip()
     if clean_title.endswith(', The'):
@@ -82,14 +147,15 @@ def fetch_movie_details(movie_title):
 
     return "", "Description not available."
 
-
-# --- RECOMMENDATION MODELS ---
+# ===============================
+# RECOMMENDATION MODELS
+# ===============================
 def get_collaborative_recs(movie_name):
     user_movie_rating = movie_matrix[movie_name]
     similar_movies = movie_matrix.corrwith(user_movie_rating)
     corr_movie = similar_movies.to_frame(name='CF_Score')
     corr_movie.dropna(inplace=True)
-    corr_movie = corr_movie.join(ratings_count['num_of_ratings'])
+    corr_movie = corr_movie.join(ratings_count)
     recs = corr_movie[corr_movie['num_of_ratings'] > 50]
     recs['CF_Score'] = ((recs['CF_Score'] + 1) / 2) * 100
     return recs.sort_values('CF_Score', ascending=False)
@@ -101,8 +167,7 @@ def get_content_based_recs(movie_name):
                           index=genre_data.index,
                           columns=genre_data.index)
     movie_scores = sim_df[movie_name] * 100
-    recs = movie_scores.to_frame(name='CB_Score')
-    return recs.sort_values('CB_Score', ascending=False)
+    return movie_scores.to_frame(name='CB_Score').sort_values('CB_Score', ascending=False)
 
 
 def get_hybrid_recs(movie_name):
@@ -113,75 +178,94 @@ def get_hybrid_recs(movie_name):
     return hybrid.sort_values('Hybrid_Score', ascending=False)
 
 
-def filter_by_genre(recommendations, selected_genre):
-    if selected_genre == 'All Genres':
-        return recommendations
-    valid_movies = genre_data[genre_data[selected_genre] == 1].index
-    return recommendations[recommendations.index.isin(valid_movies)]
+def filter_by_genre(recs, selected_genre):
+    if selected_genre == "All Genres":
+        return recs
+    valid = genre_data[genre_data[selected_genre] == 1].index
+    return recs[recs.index.isin(valid)]
 
+# ===============================
+# HEADER
+# ===============================
+st.markdown('<div class="main-title">CineMatch</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-title">AI-Powered Movie Intelligence System</div>', unsafe_allow_html=True)
 
-# --- UI ---
-st.markdown('<p class="main-title">CineMatch</p>', unsafe_allow_html=True)
-st.markdown('<p class="sub-title">Tailored Movie Recommendations</p>', unsafe_allow_html=True)
-
+# ===============================
+# CONTROLS
+# ===============================
 col1, col2, col3 = st.columns(3)
 
-selected_movie = col1.selectbox("Select Movie", movie_list)
-selected_genre = col2.selectbox("Filter Genre", genre_list)
-model_type = col3.selectbox("Choose Model",
+selected_movie = col1.selectbox("🎬 Select Movie", movie_list)
+selected_genre = col2.selectbox("🎭 Filter Genre", genre_list)
+model_type = col3.selectbox("🧠 Model",
                             ["Hybrid", "Collaborative", "Content-Based"])
 
-st.divider()
+# ===============================
+# TABS
+# ===============================
+tab1, tab2 = st.tabs(["🎬 Recommendations", "📊 Dataset Analytics"])
 
-with st.spinner("Generating Recommendations..."):
+# ===============================
+# TAB 1 – RECOMMENDATIONS
+# ===============================
+with tab1:
+
+    st.markdown('<div class="section-header">Top Recommendations</div>',
+                unsafe_allow_html=True)
 
     if model_type == "Hybrid":
         recs = get_hybrid_recs(selected_movie)
-        recs = filter_by_genre(recs, selected_genre)
-        recs = recs.head(5)
         score_col = "Hybrid_Score"
-
     elif model_type == "Collaborative":
         recs = get_collaborative_recs(selected_movie)
-        recs = filter_by_genre(recs, selected_genre)
-        recs = recs.head(5)
         score_col = "CF_Score"
-
     else:
         recs = get_content_based_recs(selected_movie)
-        recs = filter_by_genre(recs, selected_genre)
-        recs = recs.head(5)
         score_col = "CB_Score"
 
-    for movie, row in recs.iterrows():
+    recs = filter_by_genre(recs, selected_genre).head(6)
+
+    cols = st.columns(3)
+
+    for i, (movie, row) in enumerate(recs.iterrows()):
         poster, overview = fetch_movie_details(movie)
-        st.markdown(f"### {clean_movie_title(movie)}")
-        if poster:
-            st.image(poster, width=200)
-        st.write(f"Match Score: {row[score_col]:.2f}%")
-        st.write(overview)
-        st.divider()
 
-# ==================================================
-# 📊 DATASET ANALYTICS SECTION
-# ==================================================
+        with cols[i % 3]:
+            st.markdown('<div class="glass-card">', unsafe_allow_html=True)
 
-st.markdown("## 📊 Dataset Insights")
+            if poster:
+                st.image(poster, use_container_width=True)
 
-with st.expander("View Dataset Analytics"):
+            st.markdown(f"### {clean_movie_title(movie)}")
+            st.markdown(
+                f'<div class="score-badge">{row[score_col]:.0f}% Match</div>',
+                unsafe_allow_html=True
+            )
+            st.write(overview[:150] + "...")
 
-    # 1️⃣ Top Genres Distribution
-    st.markdown("### 🎭 Top Genres Distribution")
-    genre_counts = genre_data.sum().sort_values(ascending=False)
-    st.bar_chart(genre_counts)
+            st.markdown('</div>', unsafe_allow_html=True)
 
-    # 2️⃣ Rating Distribution
-    st.markdown("### ⭐ Rating Distribution")
-    rating_counts = ratings['rating'].value_counts().sort_index()
-    st.bar_chart(rating_counts)
+# ===============================
+# TAB 2 – ANALYTICS
+# ===============================
+with tab2:
 
-    # 3️⃣ Top 10 Most Rated Movies
+    st.markdown('<div class="section-header">Dataset Insights</div>',
+                unsafe_allow_html=True)
+
+    colA, colB = st.columns(2)
+
+    with colA:
+        st.markdown("### 🎭 Genre Distribution")
+        genre_counts = genre_data.sum().sort_values(ascending=False)
+        st.bar_chart(genre_counts)
+
+    with colB:
+        st.markdown("### ⭐ Rating Distribution")
+        rating_counts = ratings['rating'].value_counts().sort_index()
+        st.bar_chart(rating_counts)
+
     st.markdown("### 🎬 Top 10 Most Rated Movies")
-    top_movies = ratings_count.sort_values('num_of_ratings',
-                                           ascending=False).head(10)
+    top_movies = ratings_count.sort_values(
+        'num_of_ratings', ascending=False).head(10)
     st.bar_chart(top_movies['num_of_ratings'])
