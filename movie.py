@@ -8,7 +8,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 # ===============================
 # CONFIG
 # ===============================
-API_KEY = "YOUR_TMDB_API_KEY"  # Replace with your TMDB key
+API_KEY = "3eb39709869b67fd15b086e095c5cbec"
 
 st.set_page_config(page_title="CineMatch", page_icon="🍿", layout="wide")
 
