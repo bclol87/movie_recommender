@@ -10,10 +10,12 @@ st.markdown("""
     <style>
     /* Main website background and text */
     .main-title { font-size: 4rem; color: #E50914; font-weight: 900; margin-bottom: 0px; letter-spacing: -1px; }
-    .sub-title { color: #b3b3b3; font-size: 1.2rem; margin-bottom: 2rem; font-weight: 400; }
     
-    /* Sleek Category Headers */
-    .category-header { font-size: 1.5rem; color: #ffffff; font-weight: bold; margin-top: 2rem; margin-bottom: 1rem; border-left: 5px solid #E50914; padding-left: 10px; }
+    /* FIX: Darkened the subtitle so it shows up on white backgrounds */
+    .sub-title { color: #555555; font-size: 1.2rem; margin-bottom: 2rem; font-weight: 400; }
+    
+    /* FIX: Changed color to #000000 (Black) for the 3 category headers */
+    .category-header { font-size: 1.5rem; color: #000000; font-weight: bold; margin-top: 2rem; margin-bottom: 1rem; border-left: 5px solid #E50914; padding-left: 10px; }
     
     /* Tall, poster-like movie cards */
     .movie-card { 
@@ -22,7 +24,7 @@ st.markdown("""
         border-radius: 8px; 
         text-align: center; 
         box-shadow: 0 4px 15px rgba(0,0,0,0.5); 
-        height: 220px; /* Forces a tall rectangle shape */
+        height: 220px; 
         display: flex;
         flex-direction: column;
         justify-content: center;
@@ -129,7 +131,7 @@ generate_btn = col2.button("Find Movies", type="primary", use_container_width=Tr
 if generate_btn:
     with st.spinner('Curating your personal dashboard...'):
         
-        # ROW 1: Hybrid Model (The "Best" recommendations)
+        # ROW 1: Hybrid Model
         st.markdown('<p class="category-header">✨ Top Picks For You</p>', unsafe_allow_html=True)
         try:
             hy_recs = get_hybrid_recs(selected_movie)
@@ -137,7 +139,7 @@ if generate_btn:
         except Exception as e:
             st.error("Could not calculate Top Picks for this movie.")
             
-        # ROW 2: Collaborative Model (Community driven)
+        # ROW 2: Collaborative Model
         st.markdown('<p class="category-header">👥 What The Community Is Watching</p>', unsafe_allow_html=True)
         try:
             cf_recs = get_collaborative_recs(selected_movie)
@@ -145,7 +147,7 @@ if generate_btn:
         except Exception as e:
             st.error("Not enough community data for this title.")
         
-        # ROW 3: Content-Based (Genre driven)
+        # ROW 3: Content-Based
         st.markdown('<p class="category-header">🎭 Similar Vibe & Genres</p>', unsafe_allow_html=True)
         try:
             cb_recs = get_content_based_recs(selected_movie)
