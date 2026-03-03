@@ -124,14 +124,14 @@ def get_collaborative_recs(movie_name, min_reviews=50):
     corr_movie = corr_movie.join(ratings_count['num_of_ratings'])
     recs = corr_movie[corr_movie['num_of_ratings'] > min_reviews].copy()
     recs['CF_Score'] = ((recs['CF_Score'] + 1) / 2) * 100 
-    return recs.sort_values('CF_Score', ascending=False).drop(movie_name, errors='ignore')
+    return recs.sort_values('CF_Score', ascending=False)
 
 def get_content_based_recs(movie_name):
     cosine_sim = cosine_similarity(genre_data)
     sim_df = pd.DataFrame(cosine_sim, index=genre_data.index, columns=genre_data.index)
     movie_scores = sim_df[movie_name] * 100 
     recs = movie_scores.to_frame(name='CB_Score')
-    return recs.sort_values('CB_Score', ascending=False).drop(movie_name, errors='ignore')
+    return recs.sort_values('CF_Score', ascending=False)
 
 def get_hybrid_recs(movie_name, min_reviews=50):
     cf_recs = get_collaborative_recs(movie_name, min_reviews)
