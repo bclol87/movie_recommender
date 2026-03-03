@@ -158,8 +158,8 @@ def render_movie_cards(recommendations, score_column, model_type):
 st.markdown('<p class="main-title">CineMatch</p>', unsafe_allow_html=True)
 st.markdown('<p class="sub-title">Movies, shows, and more. Tailored to you.</p>', unsafe_allow_html=True)
 
-# Search Bar Area (Removed button column)
-col1, col2, col3 = st.columns([2.5, 1.5, 2])
+# Search Bar Area (Upgraded with 4 Columns for the new Model Selector)
+col1, col2, col3, col4 = st.columns([2.5, 1.5, 2, 1])
 
 selected_movie = col1.selectbox("Search for a movie:", movie_list, label_visibility="collapsed")
 selected_genre = col2.selectbox("Filter by genre:", genre_list, label_visibility="collapsed")
@@ -173,36 +173,39 @@ display_options = [
 ]
 selected_display = col3.selectbox("Choose Model:", display_options, label_visibility="collapsed")
 
+generate_btn = col4.button("Find Movies", type="primary", use_container_width=True)
+
 st.divider()
 
-with st.spinner('Curating dashboard...'):
-    
-    # ROW 1: HYBRID MODEL
-    if selected_display in ["Show All Rows", "✨ Top Picks Only (Hybrid)"]:
-        st.markdown('<p class="category-header">✨ Top Picks For You</p>', unsafe_allow_html=True)
-        try:
-            hy_recs = get_hybrid_recs(selected_movie)
-            hy_recs = filter_by_genre(hy_recs, selected_genre)
-            render_movie_cards(hy_recs, 'Hybrid_Score', 'Hybrid')
-        except Exception as e:
-            st.error(f"Error calculating Top Picks. Python Error: {e}")
-            
-    # ROW 2: COLLABORATIVE MODEL
-    if selected_display in ["Show All Rows", "👥 Community Only (Collaborative)"]:
-        st.markdown('<p class="category-header">👥 What The Community Is Watching</p>', unsafe_allow_html=True)
-        try:
-            cf_recs = get_collaborative_recs(selected_movie)
-            cf_recs = filter_by_genre(cf_recs, selected_genre)
-            render_movie_cards(cf_recs, 'CF_Score', 'CF')
-        except Exception as e:
-            st.error(f"Error calculating community data. Python Error: {e}")
-    
-    # ROW 3: CONTENT-BASED MODEL
-    if selected_display in ["Show All Rows", "🎭 Genres Only (Content-Based)"]:
-        st.markdown('<p class="category-header">🎭 Similar Vibe & Genres</p>', unsafe_allow_html=True)
-        try:
-            cb_recs = get_content_based_recs(selected_movie)
-            cb_recs = filter_by_genre(cb_recs, selected_genre)
-            render_movie_cards(cb_recs, 'CB_Score', 'CB')
-        except Exception as e:
-            st.error(f"Error generating genre recommendations. Python Error: {e}")
+if generate_btn:
+    with st.spinner('Curating dashboard...'):
+        
+        # ROW 1: HYBRID MODEL
+        if selected_display in ["Show All Rows", "✨ Top Picks Only (Hybrid)"]:
+            st.markdown('<p class="category-header">✨ Top Picks For You</p>', unsafe_allow_html=True)
+            try:
+                hy_recs = get_hybrid_recs(selected_movie)
+                hy_recs = filter_by_genre(hy_recs, selected_genre)
+                render_movie_cards(hy_recs, 'Hybrid_Score', 'Hybrid')
+            except Exception as e:
+                st.error(f"Error calculating Top Picks. Python Error: {e}")
+                
+        # ROW 2: COLLABORATIVE MODEL
+        if selected_display in ["Show All Rows", "👥 Community Only (Collaborative)"]:
+            st.markdown('<p class="category-header">👥 What The Community Is Watching</p>', unsafe_allow_html=True)
+            try:
+                cf_recs = get_collaborative_recs(selected_movie)
+                cf_recs = filter_by_genre(cf_recs, selected_genre)
+                render_movie_cards(cf_recs, 'CF_Score', 'CF')
+            except Exception as e:
+                st.error(f"Error calculating community data. Python Error: {e}")
+        
+        # ROW 3: CONTENT-BASED MODEL
+        if selected_display in ["Show All Rows", "🎭 Genres Only (Content-Based)"]:
+            st.markdown('<p class="category-header">🎭 Similar Vibe & Genres</p>', unsafe_allow_html=True)
+            try:
+                cb_recs = get_content_based_recs(selected_movie)
+                cb_recs = filter_by_genre(cb_recs, selected_genre)
+                render_movie_cards(cb_recs, 'CB_Score', 'CB')
+            except Exception as e:
+                st.error(f"Error generating genre recommendations. Python Error: {e}")
