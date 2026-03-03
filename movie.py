@@ -10,8 +10,9 @@ st.markdown("""
     <style>
     .main-title { font-size: 3.5rem; color: #E50914; text-align: center; font-weight: 900; margin-bottom: 0px; }
     .sub-title { text-align: center; color: #b3b3b3; font-size: 1.2rem; margin-bottom: 2rem; }
-    .movie-card { background-color: #1e1e1e; padding: 20px; border-radius: 12px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3); height: 100%; border: 1px solid #333; }
-    .match-score { color: #46d369; font-weight: bold; font-size: 1.2rem; }
+    .movie-card { background-color: #1e1e1e; padding: 15px; border-radius: 12px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3); height: 100%; border: 1px solid #333; }
+    .match-score { color: #46d369; font-weight: bold; font-size: 1.2rem; margin-bottom: 5px;}
+    .detail-text { font-size: 0.8rem; color: #aaa; margin-top: 0px; line-height: 1.4; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -45,7 +46,6 @@ def get_collaborative_recs(movie_name, min_reviews=50):
     user_movie_rating = movie_matrix[movie_name]
     similar_movies = movie_matrix.corrwith(user_movie_rating)
     
-    # FIX: Bulletproof way to convert Series to DataFrame
     corr_movie = similar_movies.to_frame(name='CF_Score')
     corr_movie.dropna(inplace=True)
     corr_movie = corr_movie.join(ratings_count['num_of_ratings'])
@@ -60,8 +60,6 @@ def get_content_based_recs(movie_name):
     sim_df = pd.DataFrame(cosine_sim, index=genre_data.index, columns=genre_data.index)
     
     movie_scores = sim_df[movie_name] * 100 
-    
-    # FIX: Bulletproof way to convert Series to DataFrame
     recs = movie_scores.to_frame(name='CB_Score')
     return recs.sort_values('CB_Score', ascending=False).drop(movie_name, errors='ignore')
 
@@ -74,15 +72,33 @@ def get_hybrid_recs(movie_name, min_reviews=50):
     hybrid_df['Hybrid_Score'] = (hybrid_df['CF_Score'] * 0.5) + (hybrid_df['CB_Score'] * 0.5)
     return hybrid_df.sort_values('Hybrid_Score', ascending=False)
 
-# --- HELPER FUNCTION TO RENDER UI CARDS ---
-def render_movie_cards(recommendations, score_column):
+# --- HELPER FUNCTION TO RENDER UI CARDS WITH DETAILS ---
+def render_movie_cards(recommendations, score_column, model_type):
     cols = st.columns(5)
     for i, (index, row) in enumerate(recommendations.head(5).iterrows()):
+        
+        # Determine the explainable AI text based on the model type
+        detail_text = ""
+        if model_type == "CF":
+            detail_text = f"Similar users liked this<br><b>({int(row['num_of_ratings'])} reviews)</b>"
+        
+        elif model_type == "CB":
+            # Extract the actual genres for this specific movie
+            genres = genre_data.loc[index]
+            active_genres = genres[genres == 1].index.tolist()
+            detail_text = f"Shared Genres:<br><b>{', '.join(active_genres[:3])}</b>"
+            
+        elif model_type == "Hybrid":
+            genres = genre_data.loc[index]
+            active_genres = genres[genres == 1].index.tolist()
+            detail_text = f"Top Rated + Genres:<br><b>{', '.join(active_genres[:2])}</b>"
+
         with cols[i]:
             st.markdown(f'''
                 <div class="movie-card">
-                    <h4>🎬 {index}</h4>
+                    <h4 style="margin-bottom: 5px; font-size: 1.1rem;">🎬 {index}</h4>
                     <p class="match-score">{row[score_column]:.0f}% Match</p>
+                    <p class="detail-text">{detail_text}</p>
                 </div>
             ''', unsafe_allow_html=True)
 
@@ -103,7 +119,7 @@ if generate_btn:
         st.subheader("👥 Member 1: Collaborative Filtering (User Ratings)")
         try:
             cf_recs = get_collaborative_recs(selected_movie)
-            render_movie_cards(cf_recs, 'CF_Score')
+            render_movie_cards(cf_recs, 'CF_Score', 'CF')
         except Exception as e:
             st.error(f"Not enough data to calculate collaborative score. Error: {e}")
             
@@ -113,7 +129,7 @@ if generate_btn:
         st.subheader("📖 Member 2: Content-Based Filtering (Movie Genres)")
         try:
             cb_recs = get_content_based_recs(selected_movie)
-            render_movie_cards(cb_recs, 'CB_Score')
+            render_movie_cards(cb_recs, 'CB_Score', 'CB')
         except Exception as e:
             st.error(f"Error generating content-based recommendations: {e}")
 
@@ -123,6 +139,6 @@ if generate_btn:
         st.subheader("🤖 Member 3: The Hybrid Model (50% CF + 50% CB)")
         try:
             hy_recs = get_hybrid_recs(selected_movie)
-            render_movie_cards(hy_recs, 'Hybrid_Score')
+            render_movie_cards(hy_recs, 'Hybrid_Score', 'Hybrid')
         except Exception as e:
             st.error(f"Could not calculate a combined hybrid score for this movie. Error: {e}")
