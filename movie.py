@@ -45,7 +45,8 @@ def get_collaborative_recs(movie_name, min_reviews=50):
     user_movie_rating = movie_matrix[movie_name]
     similar_movies = movie_matrix.corrwith(user_movie_rating)
     
-    corr_movie = pd.DataFrame(similar_movies, columns=['CF_Score'])
+    # FIX: Bulletproof way to convert Series to DataFrame
+    corr_movie = similar_movies.to_frame(name='CF_Score')
     corr_movie.dropna(inplace=True)
     corr_movie = corr_movie.join(ratings_count['num_of_ratings'])
     
@@ -59,7 +60,9 @@ def get_content_based_recs(movie_name):
     sim_df = pd.DataFrame(cosine_sim, index=genre_data.index, columns=genre_data.index)
     
     movie_scores = sim_df[movie_name] * 100 
-    recs = pd.DataFrame(movie_scores, columns=['CB_Score'])
+    
+    # FIX: Bulletproof way to convert Series to DataFrame
+    recs = movie_scores.to_frame(name='CB_Score')
     return recs.sort_values('CB_Score', ascending=False).drop(movie_name, errors='ignore')
 
 # --- ALGORITHM 3: HYBRID MODEL ---
@@ -87,7 +90,6 @@ def render_movie_cards(recommendations, score_column):
 st.markdown('<p class="main-title">🍿 CineMatch</p>', unsafe_allow_html=True)
 st.markdown('<p class="sub-title">Compare all 3 models side-by-side</p>', unsafe_allow_html=True)
 
-# The Master Search Bar
 st.markdown("### Choose a movie to test the algorithms:")
 col1, col2 = st.columns([4, 1])
 selected_movie = col1.selectbox("Search for a movie:", movie_list, label_visibility="collapsed")
@@ -98,18 +100,16 @@ st.divider()
 if generate_btn:
     with st.spinner('Running algorithms...'):
         
-        # --- SECTION 1 ---
         st.subheader("👥 Member 1: Collaborative Filtering (User Ratings)")
         try:
             cf_recs = get_collaborative_recs(selected_movie)
             render_movie_cards(cf_recs, 'CF_Score')
-        except:
-            st.error("Not enough community rating data to generate collaborative recommendations for this movie.")
+        except Exception as e:
+            st.error(f"Not enough data to calculate collaborative score. Error: {e}")
             
-        st.write("") # Spacing
+        st.write("") 
         st.write("")
         
-        # --- SECTION 2 ---
         st.subheader("📖 Member 2: Content-Based Filtering (Movie Genres)")
         try:
             cb_recs = get_content_based_recs(selected_movie)
@@ -120,10 +120,9 @@ if generate_btn:
         st.write("")
         st.write("")
         
-        # --- SECTION 3 ---
         st.subheader("🤖 Member 3: The Hybrid Model (50% CF + 50% CB)")
         try:
             hy_recs = get_hybrid_recs(selected_movie)
             render_movie_cards(hy_recs, 'Hybrid_Score')
-        except:
-            st.error("Could not calculate a combined hybrid score for this movie.")
+        except Exception as e:
+            st.error(f"Could not calculate a combined hybrid score for this movie. Error: {e}")
