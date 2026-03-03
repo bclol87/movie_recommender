@@ -1,45 +1,50 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import requests
+import re
 from sklearn.metrics.pairwise import cosine_similarity
+
+# --- TMDB API CONFIGURATION ---
+API_KEY = "3eb39709869b67fd15b086e095c5cbec"
 
 # --- PAGE CONFIGURATION & CSS ---
 st.set_page_config(page_title="CineMatch", page_icon="🍿", layout="wide")
 
 st.markdown("""
     <style>
-    /* Main website background and text */
     .main-title { font-size: 4rem; color: #E50914; font-weight: 900; margin-bottom: 0px; letter-spacing: -1px; }
+    .sub-title { color: #aaaaaa; font-size: 1.2rem; margin-bottom: 2rem; font-weight: 400; }
+    .category-header { font-size: 1.5rem; color: #ffffff; font-weight: bold; margin-top: 2rem; margin-bottom: 1rem; border-left: 5px solid #E50914; padding-left: 10px; }
     
-    /* FIX: Darkened the subtitle so it shows up on white backgrounds */
-    .sub-title { color: #555555; font-size: 1.2rem; margin-bottom: 2rem; font-weight: 400; }
-    
-    /* FIX: Changed color to #000000 (Black) for the 3 category headers */
-    .category-header { font-size: 1.5rem; color: #000000; font-weight: bold; margin-top: 2rem; margin-bottom: 1rem; border-left: 5px solid #E50914; padding-left: 10px; }
-    
-    /* Tall, poster-like movie cards */
+    /* Upgraded Card for Posters and Descriptions */
     .movie-card { 
-        background: linear-gradient(180deg, #2b2b2b 0%, #141414 100%);
-        padding: 20px 15px; 
-        border-radius: 8px; 
+        background: #181818;
+        padding: 15px; 
+        border-radius: 10px; 
         text-align: center; 
         box-shadow: 0 4px 15px rgba(0,0,0,0.5); 
-        height: 220px; 
+        height: 100%; 
         display: flex;
         flex-direction: column;
-        justify-content: center;
         border: 1px solid #333;
         transition: transform 0.2s;
     }
-    .movie-card:hover { transform: scale(1.05); border-color: #E50914; }
+    .movie-card:hover { transform: scale(1.03); border-color: #E50914; }
     
-    .movie-title { font-size: 1.1rem; color: white; font-weight: bold; margin-bottom: 10px; line-height: 1.2; }
-    .match-score { color: #46d369; font-weight: bold; font-size: 1.1rem; margin-bottom: 5px;}
-    .detail-text { font-size: 0.75rem; color: #aaa; margin-top: auto; line-height: 1.4; }
+    .movie-poster { width: 100%; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.5); }
+    .movie-title { font-size: 1.1rem; color: white; font-weight: bold; margin-bottom: 5px; line-height: 1.2; }
+    .match-score { color: #46d369; font-weight: bold; font-size: 1rem; margin-bottom: 10px;}
+    .movie-overview { font-size: 0.8rem; color: #bbbbbb; text-align: left; margin-bottom: 15px; flex-grow: 1; line-height: 1.4; }
     
-    /* Hide Streamlit default styling elements */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
+    .watch-btn { 
+        background-color: #E50914; color: white !important; padding: 8px; 
+        border-radius: 4px; text-decoration: none; font-weight: bold; 
+        display: block; width: 100%; margin-top: auto; 
+    }
+    .watch-btn:hover { background-color: #f40612; }
+    
+    #MainMenu {visibility: hidden;} footer {visibility: hidden;}
     </style>
 """, unsafe_allow_html=True)
 
@@ -67,6 +72,48 @@ def load_and_prep_data():
     return movie_matrix, ratings_count, genre_data, sorted(movies['title'].unique())
 
 movie_matrix, ratings_count, genre_data, movie_list = load_and_prep_data()
+
+# --- API HELPER FUNCTIONS ---
+def clean_movie_title(title):
+    # Removes the year e.g. " (1995)"
+    clean_title = re.sub(r'\s*\(\d{4}\)', '', title).strip()
+    # Fixes grammatical shifting e.g. "Matrix, The" -> "The Matrix"
+    if clean_title.endswith(', The'):
+        clean_title = 'The ' + clean_title[:-5]
+    elif clean_title.endswith(', A'):
+        clean_title = 'A ' + clean_title[:-3]
+    return clean_title
+
+@st.cache_data(ttl=86400) # Cache API calls for 24 hours so it stays fast
+def fetch_movie_details(movie_title):
+    search_title = clean_movie_title(movie_title)
+    url = f"https://api.themoviedb.org/3/search/movie?api_key={API_KEY}&query={search_title}"
+    
+    try:
+        response = requests.get(url)
+        data = response.json()
+        if data['results']:
+            movie = data['results'][0]
+            
+            # 1. Poster URL
+            poster_path = movie.get('poster_path')
+            poster_url = f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else "https://via.placeholder.com/500x750?text=No+Poster"
+            
+            # 2. Overview (Truncate if too long)
+            overview = movie.get('overview', 'No description available.')
+            if len(overview) > 120:
+                overview = overview[:117] + "..."
+                
+            # 3. TMDB Movie Link
+            movie_id = movie.get('id')
+            movie_link = f"https://www.themoviedb.org/movie/{movie_id}"
+            
+            return poster_url, overview, movie_link
+    except:
+        pass
+    
+    # Fallback if API fails or movie isn't found
+    return "https://via.placeholder.com/500x750?text=No+Poster", "Description not found.", "#"
 
 # --- CORE ALGORITHMS ---
 def get_collaborative_recs(movie_name, min_reviews=50):
@@ -98,24 +145,17 @@ def render_movie_cards(recommendations, score_column, model_type):
     cols = st.columns(5)
     for i, (index, row) in enumerate(recommendations.head(5).iterrows()):
         
-        detail_text = ""
-        if model_type == "CF":
-            detail_text = f"Similar users liked this<br>({int(row['num_of_ratings'])} community reviews)"
-        elif model_type == "CB":
-            genres = genre_data.loc[index]
-            active_genres = genres[genres == 1].index.tolist()
-            detail_text = f"Matches your genres:<br>{', '.join(active_genres[:3])}"
-        elif model_type == "Hybrid":
-            genres = genre_data.loc[index]
-            active_genres = genres[genres == 1].index.tolist()
-            detail_text = f"Top Rated + Genres:<br>{', '.join(active_genres[:2])}"
+        # Fetch live data from TMDB API
+        poster_url, overview, movie_link = fetch_movie_details(index)
 
         with cols[i]:
             st.markdown(f'''
                 <div class="movie-card">
-                    <div class="movie-title">{index}</div>
+                    <img src="{poster_url}" class="movie-poster" alt="{index}">
+                    <div class="movie-title">{clean_movie_title(index)}</div>
                     <div class="match-score">{row[score_column]:.0f}% Match</div>
-                    <div class="detail-text">{detail_text}</div>
+                    <div class="movie-overview">{overview}</div>
+                    <a href="{movie_link}" target="_blank" class="watch-btn">View Details</a>
                 </div>
             ''', unsafe_allow_html=True)
 
@@ -129,7 +169,7 @@ selected_movie = col1.selectbox("Search for a movie:", movie_list, label_visibil
 generate_btn = col2.button("Find Movies", type="primary", use_container_width=True)
 
 if generate_btn:
-    with st.spinner('Curating your personal dashboard...'):
+    with st.spinner('Fetching movie posters and curating your dashboard...'):
         
         # ROW 1: Hybrid Model
         st.markdown('<p class="category-header">✨ Top Picks For You</p>', unsafe_allow_html=True)
