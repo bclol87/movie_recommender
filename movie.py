@@ -14,8 +14,10 @@ st.set_page_config(page_title="CineMatch", page_icon="🍿", layout="wide")
 st.markdown("""
     <style>
     .main-title { font-size: 4rem; color: #E50914; font-weight: 900; margin-bottom: 0px; letter-spacing: -1px; }
-    .sub-title { color: #aaaaaa; font-size: 1.2rem; margin-bottom: 2rem; font-weight: 400; }
-    .category-header { font-size: 1.5rem; color: #ffffff; font-weight: bold; margin-top: 2rem; margin-bottom: 1rem; border-left: 5px solid #E50914; padding-left: 10px; }
+    .sub-title { color: #555555; font-size: 1.2rem; margin-bottom: 2rem; font-weight: 400; }
+    
+    /* FIX: Changed to #000000 (Black) so all three headers are visible */
+    .category-header { font-size: 1.5rem; color: #000000; font-weight: bold; margin-top: 2rem; margin-bottom: 1rem; border-left: 5px solid #E50914; padding-left: 10px; }
     
     .movie-card { 
         background: #181818; padding: 15px; border-radius: 10px; text-align: center; 
