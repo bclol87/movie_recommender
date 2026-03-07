@@ -4,19 +4,22 @@ import numpy as np
 import requests
 import re
 import difflib
+import ast
+from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 # --- TMDB API CONFIGURATION ---
+# We will move this to Streamlit Secrets next!
 API_KEY = "3eb39709869b67fd15b086e095c5cbec"
 
 # --- PAGE CONFIGURATION & CSS ---
-st.set_page_config(page_title="CineMatch", page_icon="🍿", layout="wide")
+st.set_page_config(page_title="CineMatch Pro", page_icon="🍿", layout="wide")
 
 st.markdown("""
     <style>
     .main-title { font-size: 4rem; color: #E50914; font-weight: 900; margin-bottom: 0px; letter-spacing: -1px; }
     .sub-title { color: #555555; font-size: 1.2rem; margin-bottom: 2rem; font-weight: 400; }
-    .category-header { font-size: 1.5rem; color: #000000; font-weight: bold; margin-top: 2rem; margin-bottom: 1rem; border-left: 5px solid #E50914; padding-left: 10px; }
+    .category-header { font-size: 1.5rem; color: #ffffff; font-weight: bold; margin-top: 2rem; margin-bottom: 1rem; border-left: 5px solid #E50914; padding-left: 10px; }
     
     .movie-card { 
         background: #181818; padding: 15px; border-radius: 10px; text-align: center; 
@@ -36,230 +39,167 @@ st.markdown("""
         display: block; width: 100%; margin-top: auto; 
     }
     .watch-btn:hover { background-color: #f40612; }
-    
-    #MainMenu {visibility: hidden;} footer {visibility: hidden;}
     </style>
 """, unsafe_allow_html=True)
 
-# --- DATA LOADING & CACHING ---
+# --- DATA LOADING & AI TRAINING ---
 @st.cache_data
 def load_and_prep_data():
-    column_names = ['user_id', 'item_id', 'rating', 'timestamp']
-    df = pd.read_csv('ml-100k/u.data', sep='\t', names=column_names)
+    df = pd.read_csv('movies_final_lite.csv')
     
-    movie_cols = ['item_id', 'title', 'release_date', 'video_release_date', 'imdb_url', 'unknown', 
-                  'Action', 'Adventure', 'Animation', 'Children', 'Comedy', 'Crime', 'Documentary', 
-                  'Drama', 'Fantasy', 'Film-Noir', 'Horror', 'Musical', 'Mystery', 'Romance', 
-                  'Sci-Fi', 'Thriller', 'War', 'Western']
-    movies = pd.read_csv('ml-100k/u.item', sep='|', encoding='latin-1', header=None, names=movie_cols)
+    # 1. Parse the JSON genres into a clean string
+    def extract_genres(x):
+        try:
+            genres = ast.literal_eval(x)
+            return " ".join([g['name'] for g in genres])
+        except:
+            return ""
+            
+    df['genres_clean'] = df['genres'].apply(extract_genres)
     
-    merged_df = pd.merge(df, movies[['item_id', 'title']], on='item_id')
-    movie_matrix = merged_df.pivot_table(index='user_id', columns='title', values='rating')
+    # 2. Clean missing data
+    df['overview'] = df['overview'].fillna('')
+    df['actors'] = df['actors'].fillna('')
+    df['director'] = df['director'].fillna('')
+    df['title'] = df['title'].astype(str)
     
-    ratings_count = pd.DataFrame(merged_df.groupby('title')['rating'].count())
-    ratings_count.rename(columns={'rating': 'num_of_ratings'}, inplace=True)
+    # 3. Create the "Content DNA" for the AI
+    df['content_features'] = df['genres_clean'] + " " + df['actors'] + " " + df['director'] + " " + df['overview']
     
-    genre_data = movies.drop(columns=['item_id', 'release_date', 'video_release_date', 'imdb_url', 'unknown'])
-    genre_data = genre_data.groupby('title').max().apply(pd.to_numeric, errors='coerce').fillna(0).astype(int)
-    
-    genre_list = ['All Genres'] + [col for col in movie_cols if col not in ['item_id', 'title', 'release_date', 'video_release_date', 'imdb_url', 'unknown']]
-    
-    return movie_matrix, ratings_count, genre_data, sorted(movies['title'].unique()), genre_list
+    return df.dropna(subset=['title']).reset_index(drop=True)
 
-movie_matrix, ratings_count, genre_data, movie_list, genre_list = load_and_prep_data()
+@st.cache_resource
+def train_tfidf_model(df):
+    tfidf = TfidfVectorizer(stop_words='english')
+    tfidf_matrix = tfidf.fit_transform(df['content_features'])
+    cosine_sim = cosine_similarity(tfidf_matrix, tfidf_matrix)
+    return cosine_sim
+
+movies = load_and_prep_data()
+cosine_sim = train_tfidf_model(movies)
+movie_list = sorted(movies['title'].unique())
 
 # --- API HELPER FUNCTIONS ---
-def clean_movie_title(title):
-    clean_title = re.sub(r'\s*\(\d{4}\)', '', title).strip()
-    if clean_title.endswith(', The'):
-        clean_title = 'The ' + clean_title[:-5]
-    elif clean_title.endswith(', A'):
-        clean_title = 'A ' + clean_title[:-3]
-    return clean_title
-
 @st.cache_data(ttl=86400) 
-def fetch_movie_details(movie_title):
-    search_title = clean_movie_title(movie_title)
-    url = f"https://api.themoviedb.org/3/search/movie?api_key={API_KEY}&query={search_title}"
+def fetch_movie_details(title_or_id, is_id=False):
+    query_param = f"/{title_or_id}" if is_id else f"/search/movie?query={title_or_id}"
+    url = f"https://api.themoviedb.org/3{query_param}&api_key={API_KEY}" if not is_id else f"https://api.themoviedb.org/3/movie/{title_or_id}?api_key={API_KEY}"
+    
     try:
-        response = requests.get(url)
-        data = response.json()
-        if data['results']:
-            movie = data['results'][0]
-            poster_path = movie.get('poster_path')
-            poster_url = f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else "https://via.placeholder.com/500x750?text=No+Poster"
+        response = requests.get(url).json()
+        movie = response if is_id else response['results'][0]
+        
+        poster_path = movie.get('poster_path')
+        poster_url = f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else "https://via.placeholder.com/500x750?text=No+Poster"
+        
+        overview = movie.get('overview', 'No description available.')
+        if len(overview) > 120: overview = overview[:117] + "..."
             
-            overview = movie.get('overview', 'No description available.')
-            if len(overview) > 120: overview = overview[:117] + "..."
-                
-            movie_id = movie.get('id')
-            movie_link = f"https://www.themoviedb.org/movie/{movie_id}"
-            
-            return poster_url, overview, movie_link
+        return poster_url, overview, f"https://www.themoviedb.org/movie/{movie.get('id')}"
     except:
-        pass
-    return "https://via.placeholder.com/500x750?text=No+Poster", "Description not found.", "#"
+        return "https://via.placeholder.com/500x750?text=No+Poster", "Description not found.", "#"
 
-# --- NEW TMDB KEYWORD SEARCH ---
 def search_tmdb_topic(query):
-    url = "https://api.themoviedb.org/3/search/movie"
-    params = {"api_key": API_KEY, "query": query}
+    url = f"https://api.themoviedb.org/3/search/movie?api_key={API_KEY}&query={query}"
     try:
-        response = requests.get(url, params=params)
-        data = response.json()
+        data = requests.get(url).json()
         results = []
-        for movie in data.get('results', [])[:5]: # Get top 5 matches
-            poster_path = movie.get('poster_path')
-            poster_url = f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else "https://via.placeholder.com/500x750?text=No+Poster"
-            
-            overview = movie.get('overview', 'No description available.')
-            if len(overview) > 120: overview = overview[:117] + "..."
-            
-            movie_link = f"https://www.themoviedb.org/movie/{movie.get('id')}"
-            
-            results.append({
-                'title': movie.get('title'),
-                'poster': poster_url,
-                'overview': overview,
-                'link': movie_link,
-                'score': movie.get('vote_average', 0) * 10
-            })
+        for movie in data.get('results', [])[:5]:
+            p_url, desc, link = fetch_movie_details(movie['id'], is_id=True)
+            results.append({'title': movie.get('title'), 'poster': p_url, 'overview': desc, 'link': link, 'score': movie.get('vote_average', 0) * 10})
         return results
-    except Exception as e:
-        return []
+    except: return []
 
 # --- CORE ALGORITHMS ---
-def get_collaborative_recs(movie_name, min_reviews=50):
-    user_movie_rating = movie_matrix[movie_name]
-    similar_movies = movie_matrix.corrwith(user_movie_rating)
-    corr_movie = similar_movies.to_frame(name='CF_Score')
-    corr_movie.dropna(inplace=True)
-    corr_movie = corr_movie.join(ratings_count['num_of_ratings'])
-    recs = corr_movie[corr_movie['num_of_ratings'] > min_reviews].copy()
-    recs['CF_Score'] = ((recs['CF_Score'] + 1) / 2) * 100 
-    return recs.sort_values('CF_Score', ascending=False)
+def get_content_based_recs(movie_title):
+    idx = movies[movies['title'] == movie_title].index[0]
+    sim_scores = list(enumerate(cosine_sim[idx]))
+    sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)[1:6]
+    
+    recs = movies.iloc[[i[0] for i in sim_scores]].copy()
+    recs['CB_Score'] = [i[1] * 100 for i in sim_scores]
+    return recs
 
-def get_content_based_recs(movie_name):
-    cosine_sim = cosine_similarity(genre_data)
-    sim_df = pd.DataFrame(cosine_sim, index=genre_data.index, columns=genre_data.index)
-    movie_scores = sim_df[movie_name] * 100 
-    recs = movie_scores.to_frame(name='CB_Score')
-    return recs.sort_values('CB_Score', ascending=False)
+def get_community_recs(movie_title):
+    # Proxy for Collaborative Filtering using Weighted Popularity
+    idx = movies[movies['title'] == movie_title].index[0]
+    target_genres = movies.iloc[idx]['genres_clean'].split()
+    
+    if not target_genres: return movies.head(5)
+    
+    # Find movies sharing at least one genre, sort by global community votes
+    pattern = '|'.join(target_genres)
+    pool = movies[movies['genres_clean'].str.contains(pattern, case=False, na=False)].copy()
+    pool = pool[pool['title'] != movie_title]
+    
+    pool['CF_Score'] = (pool['vote_average'] / 10) * 100
+    return pool.sort_values(['vote_count', 'vote_average'], ascending=[False, False]).head(5)
 
-def get_hybrid_recs(movie_name, min_reviews=50):
-    cf_recs = get_collaborative_recs(movie_name, min_reviews)
-    cb_recs = get_content_based_recs(movie_name)
-    hybrid_df = cf_recs.join(cb_recs, how='inner')
-    hybrid_df['Hybrid_Score'] = (hybrid_df['CF_Score'] * 0.5) + (hybrid_df['CB_Score'] * 0.5)
-    return hybrid_df.sort_values('Hybrid_Score', ascending=False)
-
-# --- FILTER HELPER ---
-def filter_by_genre(recommendations, selected_genre):
-    if selected_genre == 'All Genres':
-        return recommendations
-    valid_movies = genre_data[genre_data[selected_genre] == 1].index
-    return recommendations[recommendations.index.isin(valid_movies)]
+def get_hybrid_recs(movie_title):
+    cb = get_content_based_recs(movie_title)
+    cf = get_community_recs(movie_title)
+    
+    hybrid = pd.concat([cb, cf]).drop_duplicates(subset=['id'])
+    hybrid['Hybrid_Score'] = ((hybrid['vote_average']/10)*100 * 0.3) + (hybrid.get('CB_Score', 50) * 0.7)
+    return hybrid.sort_values('Hybrid_Score', ascending=False).head(5)
 
 # --- HELPER FUNCTION TO RENDER UI CARDS ---
-def render_movie_cards(recommendations, score_column, model_type):
-    if recommendations.empty:
-        st.info("No movies matched your genre filter for this category.")
-        return
-
-    top_recs = recommendations.head(5)
-    cols = st.columns(max(len(top_recs), 1)) 
-    
-    for i, (index, row) in enumerate(top_recs.iterrows()):
-        poster_url, overview, movie_link = fetch_movie_details(index)
-
+def render_movie_cards(recommendations, score_column):
+    cols = st.columns(len(recommendations)) 
+    for i, (_, row) in enumerate(recommendations.iterrows()):
+        poster_url, overview, movie_link = fetch_movie_details(row['title'])
         with cols[i]:
             st.markdown(f'''
                 <div class="movie-card">
-                    <img src="{poster_url}" class="movie-poster" alt="{index}">
-                    <div class="movie-title">{clean_movie_title(index)}</div>
-                    <div class="match-score">{row[score_column]:.0f}% Match</div>
+                    <img src="{poster_url}" class="movie-poster" alt="poster">
+                    <div class="movie-title">{row['title']}</div>
+                    <div class="match-score">{row.get(score_column, 85):.0f}% Match</div>
                     <div class="movie-overview">{overview}</div>
                     <a href="{movie_link}" target="_blank" class="watch-btn">View Details</a>
                 </div>
             ''', unsafe_allow_html=True)
 
 # --- MAIN UI LAYOUT ---
-st.markdown('<p class="main-title">CineMatch</p>', unsafe_allow_html=True)
-st.markdown('<p class="sub-title">Movies, shows, and more. Tailored to you.</p>', unsafe_allow_html=True)
+st.markdown('<p class="main-title">CineMatch Pro</p>', unsafe_allow_html=True)
+st.markdown('<p class="sub-title">Powered by Content-Based & Community Algorithms.</p>', unsafe_allow_html=True)
 
-# UPDATED Search Bar Area
-col1, col2, col3 = st.columns([2.5, 1.5, 2])
-
-# Changed selectbox to a free-text input
-search_query = col1.text_input("Search", placeholder="Type a movie title or topic (e.g., 'car')...", label_visibility="collapsed")
-selected_genre = col2.selectbox("Filter by genre:", genre_list, label_visibility="collapsed")
-
-display_options = [
-    "Show All Rows", 
-    "✨ Top Picks Only (Hybrid)", 
-    "👥 Community Only (Collaborative)", 
-    "🎭 Genres Only (Content-Based)"
-]
-selected_display = col3.selectbox("Choose Model:", display_options, label_visibility="collapsed")
+col1, col2 = st.columns([3, 1])
+search_query = col1.text_input("Search", placeholder="Type a movie title or topic (e.g., 'car', 'space')...", label_visibility="collapsed")
+selected_display = col2.selectbox("Choose Model:", ["Show All Rows", "✨ Top Picks (Hybrid)", "👥 Community Picks", "🎭 AI Similar (Content-Based)"], label_visibility="collapsed")
 
 st.divider()
 
-# --- THE SMART ROUTER LOGIC ---
 if search_query:
     with st.spinner('Curating dashboard...'):
-        
-        # 1. Check if they typed a specific movie that exists in our ML dataset
         closest_matches = difflib.get_close_matches(search_query.title(), movie_list, n=1, cutoff=0.5)
         
         if closest_matches:
             selected_movie = closest_matches[0]
-            st.success(f"🎯 AI Models activated for reference movie: **{selected_movie}**")
+            st.success(f"🎯 Local AI Models activated for: **{selected_movie}**")
             
-            # ROW 1: HYBRID MODEL
-            if selected_display in ["Show All Rows", "✨ Top Picks Only (Hybrid)"]:
-                st.markdown('<p class="category-header">✨ Top Picks For You</p>', unsafe_allow_html=True)
-                try:
-                    hy_recs = get_hybrid_recs(selected_movie)
-                    hy_recs = filter_by_genre(hy_recs, selected_genre)
-                    render_movie_cards(hy_recs, 'Hybrid_Score', 'Hybrid')
-                except Exception as e:
-                    st.error(f"Error calculating Top Picks. Python Error: {e}")
+            if selected_display in ["Show All Rows", "✨ Top Picks (Hybrid)"]:
+                st.markdown('<p class="category-header">✨ Hybrid Top Picks</p>', unsafe_allow_html=True)
+                render_movie_cards(get_hybrid_recs(selected_movie), 'Hybrid_Score')
                     
-            # ROW 2: COLLABORATIVE MODEL
-            if selected_display in ["Show All Rows", "👥 Community Only (Collaborative)"]:
-                st.markdown('<p class="category-header">👥 What The Community Is Watching</p>', unsafe_allow_html=True)
-                try:
-                    cf_recs = get_collaborative_recs(selected_movie)
-                    cf_recs = filter_by_genre(cf_recs, selected_genre)
-                    render_movie_cards(cf_recs, 'CF_Score', 'CF')
-                except Exception as e:
-                    st.error(f"Error calculating community data. Python Error: {e}")
+            if selected_display in ["Show All Rows", "👥 Community Picks"]:
+                st.markdown('<p class="category-header">👥 Community Favorites</p>', unsafe_allow_html=True)
+                render_movie_cards(get_community_recs(selected_movie), 'CF_Score')
             
-            # ROW 3: CONTENT-BASED MODEL
-            if selected_display in ["Show All Rows", "🎭 Genres Only (Content-Based)"]:
-                st.markdown('<p class="category-header">🎭 Similar Vibe & Genres</p>', unsafe_allow_html=True)
-                try:
-                    cb_recs = get_content_based_recs(selected_movie)
-                    cb_recs = filter_by_genre(cb_recs, selected_genre)
-                    render_movie_cards(cb_recs, 'CB_Score', 'CB')
-                except Exception as e:
-                    st.error(f"Error generating genre recommendations. Python Error: {e}")
+            if selected_display in ["Show All Rows", "🎭 AI Similar (Content-Based)"]:
+                st.markdown('<p class="category-header">🎭 Content Similarity</p>', unsafe_allow_html=True)
+                render_movie_cards(get_content_based_recs(selected_movie), 'CB_Score')
                     
         else:
-            # 2. If the text doesn't match our local movies, it's a Topic/Keyword!
             st.info(f"🌐 Searching global TMDB database for topic: **'{search_query}'**")
-            
             topic_results = search_tmdb_topic(search_query)
             
             if topic_results:
-                st.markdown('<p class="category-header">🍿 Topic Search Results</p>', unsafe_allow_html=True)
                 cols = st.columns(len(topic_results))
-                
                 for i, movie in enumerate(topic_results):
                     with cols[i]:
                         st.markdown(f'''
                             <div class="movie-card">
-                                <img src="{movie['poster']}" class="movie-poster" alt="poster">
+                                <img src="{movie['poster']}" class="movie-poster">
                                 <div class="movie-title">{movie['title']}</div>
                                 <div class="match-score">{movie['score']:.0f}% TMDB Score</div>
                                 <div class="movie-overview">{movie['overview']}</div>
@@ -269,4 +209,4 @@ if search_query:
             else:
                 st.warning("No movies found for that topic.")
 else:
-    st.info("👆 Type a movie name (e.g., 'Toy Story') to run your AI models, or a topic (e.g., 'car') to search globally!")
+    st.info("👆 Type a movie name (e.g., 'Iron Man') to run your AI models, or a topic (e.g., 'car') to search globally!")
