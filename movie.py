@@ -175,18 +175,13 @@ if search_query:
         
         if closest_matches:
             selected_movie = closest_matches[0]
-            st.success(f"🎯 Local AI Models activated for: **{selected_movie}**")
 
-            # --- ADD THESE TWO NEW LINES ---
             idx = movies[movies['title'] == selected_movie].index[0]
             movie_type = movies.iloc[idx]['genres_clean'].replace(" ", ", ")
-            # -------------------------------
             
             st.success(f"🎯 Local AI Models activated for: **{selected_movie}**")
-            
-            # --- ADD THIS NEW LINE TO SHOW THE USER THE TYPE ---
+
             st.info(f"🏷️ **Movie Type:** {movie_type}")
-            # ---------------------------------------------------
             
             if selected_display in ["Show All Rows", "✨ Top Picks (Hybrid)"]:
                 st.markdown('<p class="category-header">✨ Hybrid Top Picks</p>', unsafe_allow_html=True)
