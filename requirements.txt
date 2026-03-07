@@ -1,5 +1,7 @@
-streamlit
-pandas
-numpy
-scikit-learn
-requests
+import streamlit as st
+import pandas as pd
+import numpy as np
+import requests
+import re
+import difflib # <--- ADD THIS LINE
+from sklearn.metrics.pairwise import cosine_similarity
