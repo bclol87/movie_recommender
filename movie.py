@@ -17,104 +17,91 @@ st.set_page_config(page_title="CineMatch Pro", page_icon="🍿", layout="wide")
 
 st.markdown("""
     <style>
-    /* Force a sleek Dark Theme Background */
-    .stApp {
-        background-color: #0b0b0b !important;
-        color: #ffffff !important;
-    }
-
     /* Main Title with a fiery gradient */
     .main-title { 
-        font-size: 4.5rem; 
+        font-size: 4rem; 
         font-weight: 900; 
         margin-bottom: 0px; 
-        letter-spacing: -2px;
+        text-align: center;
         background: linear-gradient(90deg, #E50914, #ff7b00);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        text-align: center;
     }
     .sub-title { 
         color: #aaaaaa; 
         font-size: 1.2rem; 
-        margin-bottom: 3rem; 
+        margin-bottom: 2rem; 
         font-weight: 400; 
         text-align: center;
-        letter-spacing: 1px;
     }
     
     /* Modern Category Headers */
     .category-header { 
-        font-size: 1.8rem; 
+        font-size: 1.5rem; 
         color: #ffffff; 
-        font-weight: 800; 
-        margin-top: 3rem; 
-        margin-bottom: 1.5rem; 
-        border-left: 6px solid #E50914; 
-        padding-left: 15px; 
-        letter-spacing: -0.5px;
+        font-weight: bold; 
+        margin-top: 2rem; 
+        margin-bottom: 1rem; 
+        border-left: 5px solid #E50914; 
+        padding-left: 10px; 
     }
     
     /* Premium Glassmorphism Movie Cards */
     .movie-card { 
-        background: #1a1a1a; 
+        background: #222222; 
         padding: 15px; 
-        border-radius: 12px; 
+        border-radius: 10px; 
         text-align: center; 
-        box-shadow: 0 10px 20px rgba(0,0,0,0.6); 
         height: 100%; 
         display: flex;
         flex-direction: column; 
-        border: 1px solid #2a2a2a; 
-        transition: all 0.3s ease;
+        border: 1px solid #333333; 
+        transition: transform 0.2s, border-color 0.2s;
     }
-    /* Red Neon Glow effect on hover */
     .movie-card:hover { 
-        transform: translateY(-10px); 
+        transform: translateY(-5px); 
         border-color: #E50914; 
-        box-shadow: 0 15px 30px rgba(229, 9, 20, 0.4);
     }
     
-    .movie-poster { width: 100%; border-radius: 8px; margin-bottom: 15px; }
-    .movie-title { font-size: 1.2rem; color: #ffffff; font-weight: bold; margin-bottom: 8px; line-height: 1.3; }
-    .match-score { color: #46d369; font-weight: 900; font-size: 1.1rem; margin-bottom: 10px; text-shadow: 0 0 5px rgba(70, 211, 105, 0.3);}
+    /* FIX: Force posters to be the same height so they don't hide the text! */
+    .movie-poster { 
+        width: 100%; 
+        height: 350px; 
+        object-fit: cover; 
+        border-radius: 8px; 
+        margin-bottom: 12px; 
+    }
     
-    /* Smart Text Truncation so all cards stay the exact same height! */
+    .movie-title { font-size: 1.1rem; color: white; font-weight: bold; margin-bottom: 5px; }
+    .match-score { color: #46d369; font-weight: bold; font-size: 1rem; margin-bottom: 10px; }
+    
+    /* FIX: Keep descriptions short and uniform */
     .movie-overview { 
         font-size: 0.85rem; 
-        color: #cccccc; 
+        color: #bbbbbb; 
         text-align: left; 
-        margin-bottom: 20px; 
-        flex-grow: 1; 
-        line-height: 1.5; 
-        display: -webkit-box; 
-        -webkit-line-clamp: 4; 
-        -webkit-box-orient: vertical; 
-        overflow: hidden; 
+        margin-bottom: 15px; 
+        line-height: 1.4;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;  
+        overflow: hidden;
     }
     
-    /* Gradient Action Button */
     .watch-btn { 
-        background: linear-gradient(90deg, #E50914, #b20710); 
+        background-color: #E50914; 
         color: white !important; 
-        padding: 10px; 
-        border-radius: 6px; 
+        padding: 8px; 
+        border-radius: 4px; 
         text-decoration: none; 
         font-weight: bold; 
         display: block; 
         width: 100%; 
         margin-top: auto; 
-        transition: transform 0.2s, box-shadow 0.2s;
     }
-    .watch-btn:hover { 
-        transform: scale(1.05);
-        box-shadow: 0 5px 15px rgba(229, 9, 20, 0.5);
-    }
-
-    /* Hide the ugly Streamlit branding at the top and bottom */
-    #MainMenu {visibility: hidden;} 
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
+    .watch-btn:hover { background-color: #f40612; }
+    
+    #MainMenu {visibility: hidden;} footer {visibility: hidden;} header {visibility: hidden;}
     </style>
 """, unsafe_allow_html=True)
 
