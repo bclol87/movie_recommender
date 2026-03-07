@@ -99,6 +99,34 @@ def fetch_movie_details(movie_title):
         pass
     return "https://via.placeholder.com/500x750?text=No+Poster", "Description not found.", "#"
 
+# --- NEW TMDB KEYWORD SEARCH ---
+def search_tmdb_topic(query):
+    url = "https://api.themoviedb.org/3/search/movie"
+    params = {"api_key": API_KEY, "query": query}
+    try:
+        response = requests.get(url, params=params)
+        data = response.json()
+        results = []
+        for movie in data.get('results', [])[:5]: # Get top 5 matches
+            poster_path = movie.get('poster_path')
+            poster_url = f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else "https://via.placeholder.com/500x750?text=No+Poster"
+            
+            overview = movie.get('overview', 'No description available.')
+            if len(overview) > 120: overview = overview[:117] + "..."
+            
+            movie_link = f"https://www.themoviedb.org/movie/{movie.get('id')}"
+            
+            results.append({
+                'title': movie.get('title'),
+                'poster': poster_url,
+                'overview': overview,
+                'link': movie_link,
+                'score': movie.get('vote_average', 0) * 10
+            })
+        return results
+    except Exception as e:
+        return []
+
 # --- CORE ALGORITHMS ---
 def get_collaborative_recs(movie_name, min_reviews=50):
     user_movie_rating = movie_matrix[movie_name]
@@ -158,13 +186,13 @@ def render_movie_cards(recommendations, score_column, model_type):
 st.markdown('<p class="main-title">CineMatch</p>', unsafe_allow_html=True)
 st.markdown('<p class="sub-title">Movies, shows, and more. Tailored to you.</p>', unsafe_allow_html=True)
 
-# Search Bar Area (Removed button column)
+# UPDATED Search Bar Area
 col1, col2, col3 = st.columns([2.5, 1.5, 2])
 
-selected_movie = col1.selectbox("Search for a movie:", movie_list, label_visibility="collapsed")
+# Changed selectbox to a free-text input
+search_query = col1.text_input("Search", placeholder="Type a movie title or topic (e.g., 'car')...", label_visibility="collapsed")
 selected_genre = col2.selectbox("Filter by genre:", genre_list, label_visibility="collapsed")
 
-# The new dropdown for choosing which algorithm to display
 display_options = [
     "Show All Rows", 
     "✨ Top Picks Only (Hybrid)", 
@@ -175,34 +203,69 @@ selected_display = col3.selectbox("Choose Model:", display_options, label_visibi
 
 st.divider()
 
-with st.spinner('Curating dashboard...'):
-    
-    # ROW 1: HYBRID MODEL
-    if selected_display in ["Show All Rows", "✨ Top Picks Only (Hybrid)"]:
-        st.markdown('<p class="category-header">✨ Top Picks For You</p>', unsafe_allow_html=True)
-        try:
-            hy_recs = get_hybrid_recs(selected_movie)
-            hy_recs = filter_by_genre(hy_recs, selected_genre)
-            render_movie_cards(hy_recs, 'Hybrid_Score', 'Hybrid')
-        except Exception as e:
-            st.error(f"Error calculating Top Picks. Python Error: {e}")
+# --- THE SMART ROUTER LOGIC ---
+if search_query:
+    with st.spinner('Curating dashboard...'):
+        
+        # 1. Check if they typed a specific movie that exists in our ML dataset
+        closest_matches = difflib.get_close_matches(search_query.title(), movie_list, n=1, cutoff=0.5)
+        
+        if closest_matches:
+            selected_movie = closest_matches[0]
+            st.success(f"🎯 AI Models activated for reference movie: **{selected_movie}**")
             
-    # ROW 2: COLLABORATIVE MODEL
-    if selected_display in ["Show All Rows", "👥 Community Only (Collaborative)"]:
-        st.markdown('<p class="category-header">👥 What The Community Is Watching</p>', unsafe_allow_html=True)
-        try:
-            cf_recs = get_collaborative_recs(selected_movie)
-            cf_recs = filter_by_genre(cf_recs, selected_genre)
-            render_movie_cards(cf_recs, 'CF_Score', 'CF')
-        except Exception as e:
-            st.error(f"Error calculating community data. Python Error: {e}")
-    
-    # ROW 3: CONTENT-BASED MODEL
-    if selected_display in ["Show All Rows", "🎭 Genres Only (Content-Based)"]:
-        st.markdown('<p class="category-header">🎭 Similar Vibe & Genres</p>', unsafe_allow_html=True)
-        try:
-            cb_recs = get_content_based_recs(selected_movie)
-            cb_recs = filter_by_genre(cb_recs, selected_genre)
-            render_movie_cards(cb_recs, 'CB_Score', 'CB')
-        except Exception as e:
-            st.error(f"Error generating genre recommendations. Python Error: {e}")
+            # ROW 1: HYBRID MODEL
+            if selected_display in ["Show All Rows", "✨ Top Picks Only (Hybrid)"]:
+                st.markdown('<p class="category-header">✨ Top Picks For You</p>', unsafe_allow_html=True)
+                try:
+                    hy_recs = get_hybrid_recs(selected_movie)
+                    hy_recs = filter_by_genre(hy_recs, selected_genre)
+                    render_movie_cards(hy_recs, 'Hybrid_Score', 'Hybrid')
+                except Exception as e:
+                    st.error(f"Error calculating Top Picks. Python Error: {e}")
+                    
+            # ROW 2: COLLABORATIVE MODEL
+            if selected_display in ["Show All Rows", "👥 Community Only (Collaborative)"]:
+                st.markdown('<p class="category-header">👥 What The Community Is Watching</p>', unsafe_allow_html=True)
+                try:
+                    cf_recs = get_collaborative_recs(selected_movie)
+                    cf_recs = filter_by_genre(cf_recs, selected_genre)
+                    render_movie_cards(cf_recs, 'CF_Score', 'CF')
+                except Exception as e:
+                    st.error(f"Error calculating community data. Python Error: {e}")
+            
+            # ROW 3: CONTENT-BASED MODEL
+            if selected_display in ["Show All Rows", "🎭 Genres Only (Content-Based)"]:
+                st.markdown('<p class="category-header">🎭 Similar Vibe & Genres</p>', unsafe_allow_html=True)
+                try:
+                    cb_recs = get_content_based_recs(selected_movie)
+                    cb_recs = filter_by_genre(cb_recs, selected_genre)
+                    render_movie_cards(cb_recs, 'CB_Score', 'CB')
+                except Exception as e:
+                    st.error(f"Error generating genre recommendations. Python Error: {e}")
+                    
+        else:
+            # 2. If the text doesn't match our local movies, it's a Topic/Keyword!
+            st.info(f"🌐 Searching global TMDB database for topic: **'{search_query}'**")
+            
+            topic_results = search_tmdb_topic(search_query)
+            
+            if topic_results:
+                st.markdown('<p class="category-header">🍿 Topic Search Results</p>', unsafe_allow_html=True)
+                cols = st.columns(len(topic_results))
+                
+                for i, movie in enumerate(topic_results):
+                    with cols[i]:
+                        st.markdown(f'''
+                            <div class="movie-card">
+                                <img src="{movie['poster']}" class="movie-poster" alt="poster">
+                                <div class="movie-title">{movie['title']}</div>
+                                <div class="match-score">{movie['score']:.0f}% TMDB Score</div>
+                                <div class="movie-overview">{movie['overview']}</div>
+                                <a href="{movie['link']}" target="_blank" class="watch-btn">View Details</a>
+                            </div>
+                        ''', unsafe_allow_html=True)
+            else:
+                st.warning("No movies found for that topic.")
+else:
+    st.info("👆 Type a movie name (e.g., 'Toy Story') to run your AI models, or a topic (e.g., 'car') to search globally!")
