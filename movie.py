@@ -37,14 +37,14 @@ st.markdown("""
     
     /* Modern Category Headers */
     .category-header { 
-        font-size: 1.5rem; 
-        color: #ffffff; 
-        font-weight: bold; 
-        margin-top: 2rem; 
-        margin-bottom: 1rem; 
-        border-left: 5px solid #E50914; 
-        padding-left: 10px; 
-    }
+    font-size: 1.5rem; 
+    color: #ffffff; /* <--- THIS MAKES IT WHITE! */
+    font-weight: bold; 
+    margin-top: 2rem; 
+    margin-bottom: 1rem; 
+    border-left: 5px solid #E50914; 
+    padding-left: 10px; 
+}
     
     /* Premium Glassmorphism Movie Cards */
     .movie-card { 
