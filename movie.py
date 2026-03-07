@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import requests
 import re
+import difflib
 from sklearn.metrics.pairwise import cosine_similarity
 
 # --- TMDB API CONFIGURATION ---
