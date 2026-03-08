@@ -297,7 +297,7 @@ st.divider()
 
 if search_query:
     with st.spinner('Curating dashboard...'):
-        closest_matches = difflib.get_close_matches(search_query.title(), movie_list, n=1, cutoff=0.5)
+        closest_matches = difflib.get_close_matches(search_query.title(), movie_list, n=1, cutoff=0.75)
         
         if closest_matches:
             selected_movie = closest_matches[0]
