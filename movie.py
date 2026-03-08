@@ -9,7 +9,6 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 # --- TMDB API CONFIGURATION ---
-# IMPORTANT: Change this to st.secrets["TMDB_API_KEY"] before your presentation!
 API_KEY = "3eb39709869b67fd15b086e095c5cbec"
 
 # --- PAGE CONFIGURATION & CSS ---
@@ -17,6 +16,12 @@ st.set_page_config(page_title="CineMatch Pro", page_icon="🍿", layout="wide")
 
 st.markdown("""
     <style>
+    /* 1. FORCE DARK MODE OVERRIDE (Fixes the white background bug!) */
+    .stApp {
+        background-color: #0b0b0b !important;
+        color: #ffffff !important;
+    }
+
     /* Main Title with a fiery gradient */
     .main-title { 
         font-size: 4rem; 
@@ -38,7 +43,7 @@ st.markdown("""
     /* Modern Category Headers */
     .category-header { 
         font-size: 1.5rem; 
-        color: #000000 !important; /* Forces header to be black */
+        color: #ffffff !important; /* Forces text to be white for dark mode */
         font-weight: bold; 
         margin-top: 2rem; 
         margin-bottom: 1rem; 
@@ -46,9 +51,10 @@ st.markdown("""
         padding-left: 10px; 
     }
 
-    /* --- NEW: The Horizontal Scrolling Wrapper --- */
+    /* The Horizontal Scrolling Wrapper */
     .scroll-container {
         display: flex;
+        flex-wrap: nowrap; /* 2. FORCES CARDS INTO A SINGLE ROW */
         overflow-x: auto;
         overflow-y: hidden;
         gap: 20px;
@@ -61,16 +67,15 @@ st.markdown("""
     .scroll-container::-webkit-scrollbar-track { background: #181818; border-radius: 10px; }
     .scroll-container::-webkit-scrollbar-thumb { background: #E50914; border-radius: 10px; border: 2px solid #181818; }
     .scroll-container::-webkit-scrollbar-thumb:hover { background: #ff0a16; }
-    /* --------------------------------------------- */
     
     /* Premium Glassmorphism Movie Cards */
     .movie-card { 
-        flex: 0 0 240px; /* NEW: LOCKS WIDTH TO 240px SO THEY STAY SIDE-BY-SIDE */
+        flex: 0 0 240px; 
         background: #222222; 
         padding: 15px; 
         border-radius: 10px; 
         text-align: center; 
-        height: 600px; /* 1. STRICT HEIGHT */
+        height: 600px; 
         display: flex;
         flex-direction: column; 
         border: 1px solid #333333; 
@@ -83,7 +88,7 @@ st.markdown("""
     
     .movie-poster { 
         width: 100%; 
-        height: 320px; /* 2. STRICT POSTER HEIGHT */
+        height: 320px; 
         object-fit: cover; 
         border-radius: 8px; 
         margin-bottom: 12px; 
@@ -94,7 +99,7 @@ st.markdown("""
         color: white; 
         font-weight: bold; 
         margin-bottom: 5px; 
-        min-height: 2.8rem; /* 3. LOCK TITLE HEIGHT */
+        min-height: 2.8rem; 
         display: -webkit-box;
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;  
@@ -119,7 +124,7 @@ st.markdown("""
         -webkit-line-clamp: 3;
         -webkit-box-orient: vertical;  
         overflow: hidden;
-        flex-grow: 1; /* 4. FILLS EMPTY SPACE */
+        flex-grow: 1; 
     }
     
     .watch-btn { 
@@ -131,7 +136,7 @@ st.markdown("""
         font-weight: bold; 
         display: block; 
         width: 100%; 
-        margin-top: auto; /* 5. PUSHES BUTTON TO THE BOTTOM */
+        margin-top: auto; 
     }
     .watch-btn:hover { background-color: #f40612; }
     
@@ -144,7 +149,6 @@ st.markdown("""
 def load_and_prep_data():
     df = pd.read_csv('movies_final_lite.csv')
     
-    # 1. Parse the JSON genres into a clean string
     def extract_genres(x):
         try:
             genres = ast.literal_eval(x)
@@ -154,13 +158,11 @@ def load_and_prep_data():
             
     df['genres_clean'] = df['genres'].apply(extract_genres)
     
-    # 2. Clean missing data
     df['overview'] = df['overview'].fillna('')
     df['actors'] = df['actors'].fillna('')
     df['director'] = df['director'].fillna('')
     df['title'] = df['title'].astype(str)
     
-    # 3. Create the "Content DNA" for the AI
     df['content_features'] = df['genres_clean'] + " " + df['actors'] + " " + df['director'] + " " + df['overview']
     
     return df.dropna(subset=['title']).reset_index(drop=True)
@@ -201,7 +203,6 @@ def search_tmdb_topic(query):
     try:
         data = requests.get(url).json()
         results = []
-        # Changed to fetch 20 movies so the global search also scrolls!
         for movie in data.get('results', [])[:20]:
             p_url, desc, link = fetch_movie_details(movie['id'], is_id=True)
             results.append({'title': movie.get('title'), 'poster': p_url, 'overview': desc, 'link': link, 'score': movie.get('vote_average', 0) * 10})
@@ -212,7 +213,6 @@ def search_tmdb_topic(query):
 def get_content_based_recs(movie_title):
     idx = movies[movies['title'] == movie_title].index[0]
     sim_scores = list(enumerate(cosine_sim[idx]))
-    # Grab the top 20 instead of the top 5!
     sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)[1:21]
     
     recs = movies.iloc[[i[0] for i in sim_scores]].copy()
@@ -230,7 +230,6 @@ def get_community_recs(movie_title):
     pool = pool[pool['title'] != movie_title]
     
     pool['CF_Score'] = (pool['vote_average'] / 10) * 100
-    # Sort and return the top 20
     return pool.sort_values(['vote_count', 'vote_average'], ascending=[False, False]).head(20)
 
 def get_hybrid_recs(movie_title):
@@ -239,11 +238,9 @@ def get_hybrid_recs(movie_title):
     
     hybrid = pd.concat([cb, cf]).drop_duplicates(subset=['id'])
     hybrid['Hybrid_Score'] = ((hybrid['vote_average']/10)*100 * 0.3) + (hybrid.get('CB_Score', 50) * 0.7)
-    # Sort and return the top 20
     return hybrid.sort_values('Hybrid_Score', ascending=False).head(20)
 
 # --- HELPER FUNCTION TO RENDER UI CARDS ---
-# NEW: This renders the horizontal scroll instead of the "Show More" columns
 def render_movie_cards(recommendations, score_column):
     html_content = '<div class="scroll-container">'
     
@@ -251,15 +248,14 @@ def render_movie_cards(recommendations, score_column):
         poster_url, overview, movie_link = fetch_movie_details(row['title'])
         score = row.get(score_column, 85)
         
-        html_content += f'''
-            <div class="movie-card">
-                <img src="{poster_url}" class="movie-poster" alt="poster">
-                <div class="movie-title">{row['title']}</div>
-                <div class="match-score">{score:.0f}% Match</div>
-                <div class="movie-overview">{overview}</div>
-                <a href="{movie_link}" target="_blank" class="watch-btn">View Details</a>
-            </div>
-        '''
+        # 3. FIX: Removed formatting spaces so Streamlit doesn't think this is a Markdown code block!
+        html_content += f"""<div class="movie-card">
+<img src="{poster_url}" class="movie-poster" alt="poster">
+<div class="movie-title">{row['title']}</div>
+<div class="match-score">{score:.0f}% Match</div>
+<div class="movie-overview">{overview}</div>
+<a href="{movie_link}" target="_blank" class="watch-btn">View Details</a>
+</div>"""
         
     html_content += '</div>'
     st.markdown(html_content, unsafe_allow_html=True)
@@ -285,7 +281,6 @@ if search_query:
             movie_type = movies.iloc[idx]['genres_clean'].replace(" ", ", ")
             
             st.success(f"🎯 Local AI Models activated for: **{selected_movie}**")
-
             st.info(f"🏷️ **Movie Type:** {movie_type}")
             
             if selected_display in ["Show All Rows", "✨ Top Picks (Hybrid)"]:
@@ -305,7 +300,6 @@ if search_query:
             topic_results = search_tmdb_topic(search_query)
             
             if topic_results:
-                # Convert list to DataFrame so it plugs into the new scroll function!
                 topic_df = pd.DataFrame(topic_results)
                 render_movie_cards(topic_df, 'score')
             else:
