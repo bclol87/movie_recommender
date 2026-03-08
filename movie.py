@@ -177,26 +177,26 @@ def search_tmdb_topic(query):
 def get_content_based_recs(movie_title):
     idx = movies[movies['title'] == movie_title].index[0]
     sim_scores = list(enumerate(cosine_sim[idx]))
-    sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)[1:6]
+    # Grab the top 20 instead of the top 5!
+    sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)[1:21]
     
     recs = movies.iloc[[i[0] for i in sim_scores]].copy()
     recs['CB_Score'] = [i[1] * 100 for i in sim_scores]
     return recs
 
 def get_community_recs(movie_title):
-    # Proxy for Collaborative Filtering using Weighted Popularity
     idx = movies[movies['title'] == movie_title].index[0]
     target_genres = movies.iloc[idx]['genres_clean'].split()
     
-    if not target_genres: return movies.head(5)
+    if not target_genres: return movies.head(20)
     
-    # Find movies sharing at least one genre, sort by global community votes
     pattern = '|'.join(target_genres)
     pool = movies[movies['genres_clean'].str.contains(pattern, case=False, na=False)].copy()
     pool = pool[pool['title'] != movie_title]
     
     pool['CF_Score'] = (pool['vote_average'] / 10) * 100
-    return pool.sort_values(['vote_count', 'vote_average'], ascending=[False, False]).head(5)
+    # Sort and return the top 20
+    return pool.sort_values(['vote_count', 'vote_average'], ascending=[False, False]).head(20)
 
 def get_hybrid_recs(movie_title):
     cb = get_content_based_recs(movie_title)
@@ -204,12 +204,15 @@ def get_hybrid_recs(movie_title):
     
     hybrid = pd.concat([cb, cf]).drop_duplicates(subset=['id'])
     hybrid['Hybrid_Score'] = ((hybrid['vote_average']/10)*100 * 0.3) + (hybrid.get('CB_Score', 50) * 0.7)
-    return hybrid.sort_values('Hybrid_Score', ascending=False).head(5)
+    # Sort and return the top 20
+    return hybrid.sort_values('Hybrid_Score', ascending=False).head(20)
 
 # --- HELPER FUNCTION TO RENDER UI CARDS ---
 def render_movie_cards(recommendations, score_column):
-    cols = st.columns(len(recommendations)) 
-    for i, (_, row) in enumerate(recommendations.iterrows()):
+    # 1. Show the Top 5 normally on the main screen
+    top_5 = recommendations.head(5)
+    cols = st.columns(len(top_5)) 
+    for i, (_, row) in enumerate(top_5.iterrows()):
         poster_url, overview, movie_link = fetch_movie_details(row['title'])
         with cols[i]:
             st.markdown(f'''
@@ -221,6 +224,28 @@ def render_movie_cards(recommendations, score_column):
                     <a href="{movie_link}" target="_blank" class="watch-btn">View Details</a>
                 </div>
             ''', unsafe_allow_html=True)
+            
+    if len(recommendations) > 5:
+        with st.expander("🔽 Click to view more matches..."):
+            remaining = recommendations.iloc[5:]
+            
+            # Create perfect rows of 5 for the extra movies
+            for row_start in range(0, len(remaining), 5):
+                chunk = remaining.iloc[row_start:row_start+5]
+                exp_cols = st.columns(5) # Always use 5 columns to keep sizes matched
+                
+                for j, (_, row) in enumerate(chunk.iterrows()):
+                    poster_url, overview, movie_link = fetch_movie_details(row['title'])
+                    with exp_cols[j]:
+                        st.markdown(f'''
+                            <div class="movie-card">
+                                <img src="{poster_url}" class="movie-poster">
+                                <div class="movie-title">{row['title']}</div>
+                                <div class="match-score">{row.get(score_column, 85):.0f}% Match</div>
+                                <div class="movie-overview">{overview}</div>
+                                <a href="{movie_link}" target="_blank" class="watch-btn">View Details</a>
+                            </div>
+                        ''', unsafe_allow_html=True)
 
 # --- MAIN UI LAYOUT ---
 st.markdown('<p class="main-title">CineMatch Pro</p>', unsafe_allow_html=True)
