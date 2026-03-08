@@ -15,7 +15,7 @@ API_KEY = "3eb39709869b67fd15b086e095c5cbec"
 # --- PAGE CONFIGURATION & CSS ---
 st.set_page_config(page_title="CineMatch Pro", page_icon="🍿", layout="wide")
 
-# Setting up the white background and light theme CSS
+# Setting up the white background with BLACK movie cards
 st.markdown("""
     <style>
     /* 1. Force Light Mode for the App Background */
@@ -35,17 +35,17 @@ st.markdown("""
         -webkit-text-fill-color: transparent;
     }
     .sub-title { 
-        color: #555555; /* Darker gray for readability on white */
+        color: #555555; 
         font-size: 1.2rem; 
         margin-bottom: 2rem; 
         font-weight: 400; 
         text-align: center;
     }
     
-    /* Modern Category Headers (Dark text) */
+    /* Modern Category Headers (Dark text for white background) */
     .category-header { 
         font-size: 1.5rem; 
-        color: #000000 !important; /* Force Black text */
+        color: #000000 !important; 
         font-weight: bold; 
         margin-top: 2rem; 
         margin-bottom: 1rem; 
@@ -64,30 +64,30 @@ st.markdown("""
         scroll-behavior: smooth;
     }
     
-    /* Custom Scrollbar styled for light mode */
+    /* Custom Scrollbar */
     .scroll-container::-webkit-scrollbar { height: 12px; }
     .scroll-container::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
     .scroll-container::-webkit-scrollbar-thumb { background: #cccccc; border-radius: 10px; border: 2px solid #f1f1f1; }
     .scroll-container::-webkit-scrollbar-thumb:hover { background: #E50914; }
     
-    /* Movie Cards styled for Light Mode */
+    /* --- NEW: BLACK Movie Cards --- */
     .movie-card { 
         flex: 0 0 240px; 
-        background: #ffffff; /* White card background */
+        background: #121212; /* Deep Black Background */
         padding: 15px; 
         border-radius: 10px; 
         text-align: center; 
         height: 600px; 
         display: flex;
         flex-direction: column; 
-        border: 1px solid #eaeaea; /* Light border */
+        border: 1px solid #333333; 
         transition: transform 0.2s, box-shadow 0.2s;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05); /* Subtle shadow for depth */
+        box-shadow: 0 4px 10px rgba(0,0,0,0.15); 
     }
     .movie-card:hover { 
         transform: translateY(-5px); 
         border-color: #E50914; 
-        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        box-shadow: 0 8px 20px rgba(229, 9, 20, 0.3);
     }
     
     .movie-poster { 
@@ -98,9 +98,10 @@ st.markdown("""
         margin-bottom: 12px; 
     }
     
+    /* Changed text back to white so it shows up on the black cards! */
     .movie-title { 
         font-size: 1.1rem; 
-        color: #000000; /* Black text */
+        color: #ffffff; /* White text */
         font-weight: bold; 
         margin-bottom: 5px; 
         min-height: 2.8rem; 
@@ -111,7 +112,7 @@ st.markdown("""
     }
     
     .match-score { 
-        color: #28a745; /* Darker green for contrast on white */
+        color: #46d369; /* Bright green for black background */
         font-weight: bold; 
         font-size: 1rem; 
         margin-bottom: 10px; 
@@ -120,7 +121,7 @@ st.markdown("""
     
     .movie-overview { 
         font-size: 0.85rem; 
-        color: #555555; /* Dark gray text */
+        color: #cccccc; /* Light gray text */
         text-align: left; 
         margin-bottom: 15px; 
         line-height: 1.4;
@@ -130,6 +131,7 @@ st.markdown("""
         overflow: hidden;
         flex-grow: 1; 
     }
+    /* ------------------------------ */
     
     .watch-btn { 
         background-color: #E50914; 
@@ -144,7 +146,7 @@ st.markdown("""
     }
     .watch-btn:hover { background-color: #f40612; }
     
-    /* Ensures native Streamlit widgets don't clash too much */
+    /* Ensures native Streamlit widgets don't clash */
     .stTextInput>div>div>input {
         color: black !important;
     }
@@ -260,7 +262,7 @@ def render_movie_cards(recommendations, score_column):
         poster_url, overview, movie_link = fetch_movie_details(row['title'])
         score = row.get(score_column, 85)
         
-        # HTML structure optimized for Streamlit markdown rendering without code-block bug
+        # HTML structure without the code block bug
         html_content += f"""<div class="movie-card">
 <img src="{poster_url}" class="movie-poster" alt="poster">
 <div class="movie-title">{row['title']}</div>
