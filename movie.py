@@ -258,15 +258,26 @@ def get_hybrid_recs(movie_title):
 def render_movie_cards(recommendations, score_column):
     html_content = '<div class="scroll-container">'
     
+    # 1. NEW LOGIC: Determine the exact reason for the match!
+    if score_column == 'CB_Score':
+        match_reason = "🧬 Matches Actors, Director & Plot"
+    elif score_column == 'CF_Score':
+        match_reason = "⭐ Global Community Rating"
+    elif score_column == 'Hybrid_Score':
+        match_reason = "✨ AI DNA + Global Rating"
+    else:
+        match_reason = "🌐 TMDB Search Result"
+    
     for i, (_, row) in enumerate(recommendations.iterrows()):
         poster_url, overview, movie_link = fetch_movie_details(row['title'])
         score = row.get(score_column, 85)
         
-        # HTML structure without the code block bug
+        # 2. NEW UI: Insert the 'match_reason' right below the green percentage!
         html_content += f"""<div class="movie-card">
 <img src="{poster_url}" class="movie-poster" alt="poster">
 <div class="movie-title">{row['title']}</div>
 <div class="match-score">{score:.0f}% Match</div>
+<div style="font-size: 0.75rem; color: #888888; margin-top: -8px; margin-bottom: 10px;">{match_reason}</div>
 <div class="movie-overview">{overview}</div>
 <a href="{movie_link}" target="_blank" class="watch-btn">View Details</a>
 </div>"""
