@@ -9,7 +9,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 # --- TMDB API CONFIGURATION ---
-# We will move this to Streamlit Secrets next!
+# IMPORTANT: Change this to st.secrets["TMDB_API_KEY"] before your presentation!
 API_KEY = "3eb39709869b67fd15b086e095c5cbec"
 
 # --- PAGE CONFIGURATION & CSS ---
@@ -38,21 +38,39 @@ st.markdown("""
     /* Modern Category Headers */
     .category-header { 
         font-size: 1.5rem; 
-        color: #000000 !important; /* <--- THIS FORCES IT TO BE BLACK */
+        color: #000000 !important; /* Forces header to be black */
         font-weight: bold; 
         margin-top: 2rem; 
         margin-bottom: 1rem; 
         border-left: 5px solid #E50914; 
         padding-left: 10px; 
     }
+
+    /* --- NEW: The Horizontal Scrolling Wrapper --- */
+    .scroll-container {
+        display: flex;
+        overflow-x: auto;
+        overflow-y: hidden;
+        gap: 20px;
+        padding: 10px 0px 20px 0px;
+        scroll-behavior: smooth;
+    }
+    
+    /* Custom Red Scrollbar */
+    .scroll-container::-webkit-scrollbar { height: 12px; }
+    .scroll-container::-webkit-scrollbar-track { background: #181818; border-radius: 10px; }
+    .scroll-container::-webkit-scrollbar-thumb { background: #E50914; border-radius: 10px; border: 2px solid #181818; }
+    .scroll-container::-webkit-scrollbar-thumb:hover { background: #ff0a16; }
+    /* --------------------------------------------- */
     
     /* Premium Glassmorphism Movie Cards */
     .movie-card { 
+        flex: 0 0 240px; /* NEW: LOCKS WIDTH TO 240px SO THEY STAY SIDE-BY-SIDE */
         background: #222222; 
         padding: 15px; 
         border-radius: 10px; 
         text-align: center; 
-        height: 600px; /* 1. STRICT HEIGHT: Forces all boxes to be exactly the same size */
+        height: 600px; /* 1. STRICT HEIGHT */
         display: flex;
         flex-direction: column; 
         border: 1px solid #333333; 
@@ -76,7 +94,7 @@ st.markdown("""
         color: white; 
         font-weight: bold; 
         margin-bottom: 5px; 
-        min-height: 2.8rem; /* 3. LOCK TITLE HEIGHT: Allows 2 lines of text without shifting */
+        min-height: 2.8rem; /* 3. LOCK TITLE HEIGHT */
         display: -webkit-box;
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;  
@@ -88,7 +106,7 @@ st.markdown("""
         font-weight: bold; 
         font-size: 1rem; 
         margin-bottom: 10px; 
-        min-height: 1.2rem; /* Ensures space is kept even if the score is missing */
+        min-height: 1.2rem; 
     }
     
     .movie-overview { 
@@ -113,7 +131,7 @@ st.markdown("""
         font-weight: bold; 
         display: block; 
         width: 100%; 
-        margin-top: auto; /* 5. PUSHES BUTTON TO THE VERY BOTTOM ALIGNMENT */
+        margin-top: auto; /* 5. PUSHES BUTTON TO THE BOTTOM */
     }
     .watch-btn:hover { background-color: #f40612; }
     
@@ -183,7 +201,8 @@ def search_tmdb_topic(query):
     try:
         data = requests.get(url).json()
         results = []
-        for movie in data.get('results', [])[:5]:
+        # Changed to fetch 20 movies so the global search also scrolls!
+        for movie in data.get('results', [])[:20]:
             p_url, desc, link = fetch_movie_details(movie['id'], is_id=True)
             results.append({'title': movie.get('title'), 'poster': p_url, 'overview': desc, 'link': link, 'score': movie.get('vote_average', 0) * 10})
         return results
@@ -224,62 +243,26 @@ def get_hybrid_recs(movie_title):
     return hybrid.sort_values('Hybrid_Score', ascending=False).head(20)
 
 # --- HELPER FUNCTION TO RENDER UI CARDS ---
-def render_movie_cards(recommendations, score_column, category_key):
-    top_5 = recommendations.head(5)
+# NEW: This renders the horizontal scroll instead of the "Show More" columns
+def render_movie_cards(recommendations, score_column):
+    html_content = '<div class="scroll-container">'
     
-    # Create 6 columns (5 for movies, 1 slightly thinner one for the button)
-    cols = st.columns([1, 1, 1, 1, 1, 0.7]) 
-    
-    for i, (_, row) in enumerate(top_5.iterrows()):
+    for i, (_, row) in enumerate(recommendations.iterrows()):
         poster_url, overview, movie_link = fetch_movie_details(row['title'])
-        with cols[i]:
-            st.markdown(f'''
-                <div class="movie-card">
-                    <img src="{poster_url}" class="movie-poster" alt="poster">
-                    <div class="movie-title">{row['title']}</div>
-                    <div class="match-score">{row.get(score_column, 85):.0f}% Match</div>
-                    <div class="movie-overview">{overview}</div>
-                    <a href="{movie_link}" target="_blank" class="watch-btn">View Details</a>
-                </div>
-            ''', unsafe_allow_html=True)
-            
-    # The 6th Column for the "Show More" Button
-    with cols[5]:
-        # Add vertical space to center the button next to the tall movie cards
-        st.markdown('<div style="height: 180px;"></div>', unsafe_allow_html=True)
+        score = row.get(score_column, 85)
         
-        # Setup the toggle memory so Streamlit remembers if it's open or closed
-        state_key = f"show_{category_key}"
-        if state_key not in st.session_state:
-            st.session_state[state_key] = False
-            
-        # Draw the interactive button
-        if st.button("➕ Show More" if not st.session_state[state_key] else "➖ Show Less", key=f"btn_{category_key}", use_container_width=True):
-            st.session_state[state_key] = not st.session_state[state_key]
-            st.rerun() # Refresh screen smoothly
-
-    # If the user clicked "Show More", reveal the next 15 movies below!
-    if st.session_state.get(state_key, False) and len(recommendations) > 5:
-        st.markdown("---") 
-        remaining = recommendations.iloc[5:]
+        html_content += f'''
+            <div class="movie-card">
+                <img src="{poster_url}" class="movie-poster" alt="poster">
+                <div class="movie-title">{row['title']}</div>
+                <div class="match-score">{score:.0f}% Match</div>
+                <div class="movie-overview">{overview}</div>
+                <a href="{movie_link}" target="_blank" class="watch-btn">View Details</a>
+            </div>
+        '''
         
-        # Draw the extra movies in perfect rows of 5
-        for row_start in range(0, len(remaining), 5):
-            chunk = remaining.iloc[row_start:row_start+5]
-            exp_cols = st.columns(5) 
-            
-            for j, (_, row) in enumerate(chunk.iterrows()):
-                poster_url, overview, movie_link = fetch_movie_details(row['title'])
-                with exp_cols[j]:
-                    st.markdown(f'''
-                        <div class="movie-card">
-                            <img src="{poster_url}" class="movie-poster">
-                            <div class="movie-title">{row['title']}</div>
-                            <div class="match-score">{row.get(score_column, 85):.0f}% Match</div>
-                            <div class="movie-overview">{overview}</div>
-                            <a href="{movie_link}" target="_blank" class="watch-btn">View Details</a>
-                        </div>
-                    ''', unsafe_allow_html=True)
+    html_content += '</div>'
+    st.markdown(html_content, unsafe_allow_html=True)
 
 # --- MAIN UI LAYOUT ---
 st.markdown('<p class="main-title">CineMatch Pro</p>', unsafe_allow_html=True)
@@ -307,36 +290,24 @@ if search_query:
             
             if selected_display in ["Show All Rows", "✨ Top Picks (Hybrid)"]:
                 st.markdown('<p class="category-header">✨ Hybrid Top Picks</p>', unsafe_allow_html=True)
-                # ADDED 'hybrid' AT THE END
-                render_movie_cards(get_hybrid_recs(selected_movie), 'Hybrid_Score', 'hybrid')
+                render_movie_cards(get_hybrid_recs(selected_movie), 'Hybrid_Score')
                     
             if selected_display in ["Show All Rows", "👥 Community Picks"]:
                 st.markdown('<p class="category-header">👥 Community Favorites</p>', unsafe_allow_html=True)
-                # ADDED 'community' AT THE END
-                render_movie_cards(get_community_recs(selected_movie), 'CF_Score', 'community')
+                render_movie_cards(get_community_recs(selected_movie), 'CF_Score')
             
             if selected_display in ["Show All Rows", "🎭 AI Similar (Content-Based)"]:
                 st.markdown('<p class="category-header">🎭 Content Similarity</p>', unsafe_allow_html=True)
-                # ADDED 'content' AT THE END
-                render_movie_cards(get_content_based_recs(selected_movie), 'CB_Score', 'content')
+                render_movie_cards(get_content_based_recs(selected_movie), 'CB_Score')
                     
         else:
             st.info(f"🌐 Searching global TMDB database for topic: **'{search_query}'**")
             topic_results = search_tmdb_topic(search_query)
             
             if topic_results:
-                cols = st.columns(len(topic_results))
-                for i, movie in enumerate(topic_results):
-                    with cols[i]:
-                        st.markdown(f'''
-                            <div class="movie-card">
-                                <img src="{movie['poster']}" class="movie-poster">
-                                <div class="movie-title">{movie['title']}</div>
-                                <div class="match-score">{movie['score']:.0f}% TMDB Score</div>
-                                <div class="movie-overview">{movie['overview']}</div>
-                                <a href="{movie['link']}" target="_blank" class="watch-btn">View Details</a>
-                            </div>
-                        ''', unsafe_allow_html=True)
+                # Convert list to DataFrame so it plugs into the new scroll function!
+                topic_df = pd.DataFrame(topic_results)
+                render_movie_cards(topic_df, 'score')
             else:
                 st.warning("No movies found for that topic.")
 else:
