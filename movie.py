@@ -208,10 +208,12 @@ def get_hybrid_recs(movie_title):
     return hybrid.sort_values('Hybrid_Score', ascending=False).head(20)
 
 # --- HELPER FUNCTION TO RENDER UI CARDS ---
-def render_movie_cards(recommendations, score_column):
-    # 1. Show the Top 5 normally on the main screen
+def render_movie_cards(recommendations, score_column, category_key):
     top_5 = recommendations.head(5)
-    cols = st.columns(len(top_5)) 
+    
+    # Create 6 columns (5 for movies, 1 slightly thinner one for the button)
+    cols = st.columns([1, 1, 1, 1, 1, 0.7]) 
+    
     for i, (_, row) in enumerate(top_5.iterrows()):
         poster_url, overview, movie_link = fetch_movie_details(row['title'])
         with cols[i]:
@@ -225,27 +227,43 @@ def render_movie_cards(recommendations, score_column):
                 </div>
             ''', unsafe_allow_html=True)
             
-    if len(recommendations) > 5:
-        with st.expander("🔽 Click to view more matches..."):
-            remaining = recommendations.iloc[5:]
+    # The 6th Column for the "Show More" Button
+    with cols[5]:
+        # Add vertical space to center the button next to the tall movie cards
+        st.markdown('<div style="height: 180px;"></div>', unsafe_allow_html=True)
+        
+        # Setup the toggle memory so Streamlit remembers if it's open or closed
+        state_key = f"show_{category_key}"
+        if state_key not in st.session_state:
+            st.session_state[state_key] = False
             
-            # Create perfect rows of 5 for the extra movies
-            for row_start in range(0, len(remaining), 5):
-                chunk = remaining.iloc[row_start:row_start+5]
-                exp_cols = st.columns(5) # Always use 5 columns to keep sizes matched
-                
-                for j, (_, row) in enumerate(chunk.iterrows()):
-                    poster_url, overview, movie_link = fetch_movie_details(row['title'])
-                    with exp_cols[j]:
-                        st.markdown(f'''
-                            <div class="movie-card">
-                                <img src="{poster_url}" class="movie-poster">
-                                <div class="movie-title">{row['title']}</div>
-                                <div class="match-score">{row.get(score_column, 85):.0f}% Match</div>
-                                <div class="movie-overview">{overview}</div>
-                                <a href="{movie_link}" target="_blank" class="watch-btn">View Details</a>
-                            </div>
-                        ''', unsafe_allow_html=True)
+        # Draw the interactive button
+        if st.button("➕ Show More" if not st.session_state[state_key] else "➖ Show Less", key=f"btn_{category_key}", use_container_width=True):
+            st.session_state[state_key] = not st.session_state[state_key]
+            st.rerun() # Refresh screen smoothly
+
+    # If the user clicked "Show More", reveal the next 15 movies below!
+    if st.session_state.get(state_key, False) and len(recommendations) > 5:
+        st.markdown("---") 
+        remaining = recommendations.iloc[5:]
+        
+        # Draw the extra movies in perfect rows of 5
+        for row_start in range(0, len(remaining), 5):
+            chunk = remaining.iloc[row_start:row_start+5]
+            exp_cols = st.columns(5) 
+            
+            for j, (_, row) in enumerate(chunk.iterrows()):
+                poster_url, overview, movie_link = fetch_movie_details(row['title'])
+                with exp_cols[j]:
+                    st.markdown(f'''
+                        <div class="movie-card">
+                            <img src="{poster_url}" class="movie-poster">
+                            <div class="movie-title">{row['title']}</div>
+                            <div class="match-score">{row.get(score_column, 85):.0f}% Match</div>
+                            <div class="movie-overview">{overview}</div>
+                            <a href="{movie_link}" target="_blank" class="watch-btn">View Details</a>
+                        </div>
+                    ''', unsafe_allow_html=True)
 
 # --- MAIN UI LAYOUT ---
 st.markdown('<p class="main-title">CineMatch Pro</p>', unsafe_allow_html=True)
@@ -273,15 +291,18 @@ if search_query:
             
             if selected_display in ["Show All Rows", "✨ Top Picks (Hybrid)"]:
                 st.markdown('<p class="category-header">✨ Hybrid Top Picks</p>', unsafe_allow_html=True)
-                render_movie_cards(get_hybrid_recs(selected_movie), 'Hybrid_Score')
+                # ADDED 'hybrid' AT THE END
+                render_movie_cards(get_hybrid_recs(selected_movie), 'Hybrid_Score', 'hybrid')
                     
             if selected_display in ["Show All Rows", "👥 Community Picks"]:
                 st.markdown('<p class="category-header">👥 Community Favorites</p>', unsafe_allow_html=True)
-                render_movie_cards(get_community_recs(selected_movie), 'CF_Score')
+                # ADDED 'community' AT THE END
+                render_movie_cards(get_community_recs(selected_movie), 'CF_Score', 'community')
             
             if selected_display in ["Show All Rows", "🎭 AI Similar (Content-Based)"]:
                 st.markdown('<p class="category-header">🎭 Content Similarity</p>', unsafe_allow_html=True)
-                render_movie_cards(get_content_based_recs(selected_movie), 'CB_Score')
+                # ADDED 'content' AT THE END
+                render_movie_cards(get_content_based_recs(selected_movie), 'CB_Score', 'content')
                     
         else:
             st.info(f"🌐 Searching global TMDB database for topic: **'{search_query}'**")
