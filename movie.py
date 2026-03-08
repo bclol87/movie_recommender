@@ -52,7 +52,7 @@ st.markdown("""
         padding: 15px; 
         border-radius: 10px; 
         text-align: center; 
-        height: 100%; 
+        height: 600px; /* 1. STRICT HEIGHT: Forces all boxes to be exactly the same size */
         display: flex;
         flex-direction: column; 
         border: 1px solid #333333; 
@@ -63,19 +63,34 @@ st.markdown("""
         border-color: #E50914; 
     }
     
-    /* FIX: Force posters to be the same height so they don't hide the text! */
     .movie-poster { 
         width: 100%; 
-        height: 350px; 
+        height: 320px; /* 2. STRICT POSTER HEIGHT */
         object-fit: cover; 
         border-radius: 8px; 
         margin-bottom: 12px; 
     }
     
-    .movie-title { font-size: 1.1rem; color: white; font-weight: bold; margin-bottom: 5px; }
-    .match-score { color: #46d369; font-weight: bold; font-size: 1rem; margin-bottom: 10px; }
+    .movie-title { 
+        font-size: 1.1rem; 
+        color: white; 
+        font-weight: bold; 
+        margin-bottom: 5px; 
+        min-height: 2.8rem; /* 3. LOCK TITLE HEIGHT: Allows 2 lines of text without shifting */
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;  
+        overflow: hidden;
+    }
     
-    /* FIX: Keep descriptions short and uniform */
+    .match-score { 
+        color: #46d369; 
+        font-weight: bold; 
+        font-size: 1rem; 
+        margin-bottom: 10px; 
+        min-height: 1.2rem; /* Ensures space is kept even if the score is missing */
+    }
+    
     .movie-overview { 
         font-size: 0.85rem; 
         color: #bbbbbb; 
@@ -86,6 +101,7 @@ st.markdown("""
         -webkit-line-clamp: 3;
         -webkit-box-orient: vertical;  
         overflow: hidden;
+        flex-grow: 1; /* 4. FILLS EMPTY SPACE */
     }
     
     .watch-btn { 
@@ -97,7 +113,7 @@ st.markdown("""
         font-weight: bold; 
         display: block; 
         width: 100%; 
-        margin-top: auto; 
+        margin-top: auto; /* 5. PUSHES BUTTON TO THE VERY BOTTOM ALIGNMENT */
     }
     .watch-btn:hover { background-color: #f40612; }
     
