@@ -9,17 +9,19 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 # --- TMDB API CONFIGURATION ---
+# REMINDER: Secure this with st.secrets before your presentation!
 API_KEY = "3eb39709869b67fd15b086e095c5cbec"
 
 # --- PAGE CONFIGURATION & CSS ---
 st.set_page_config(page_title="CineMatch Pro", page_icon="🍿", layout="wide")
 
+# Setting up the white background and light theme CSS
 st.markdown("""
     <style>
-    /* 1. FORCE DARK MODE OVERRIDE (Fixes the white background bug!) */
+    /* 1. Force Light Mode for the App Background */
     .stApp {
-        background-color: #0b0b0b !important;
-        color: #ffffff !important;
+        background-color: #ffffff !important;
+        color: #000000 !important;
     }
 
     /* Main Title with a fiery gradient */
@@ -33,17 +35,17 @@ st.markdown("""
         -webkit-text-fill-color: transparent;
     }
     .sub-title { 
-        color: #aaaaaa; 
+        color: #555555; /* Darker gray for readability on white */
         font-size: 1.2rem; 
         margin-bottom: 2rem; 
         font-weight: 400; 
         text-align: center;
     }
     
-    /* Modern Category Headers */
+    /* Modern Category Headers (Dark text) */
     .category-header { 
         font-size: 1.5rem; 
-        color: #ffffff !important; /* Forces text to be white for dark mode */
+        color: #000000 !important; /* Force Black text */
         font-weight: bold; 
         margin-top: 2rem; 
         margin-bottom: 1rem; 
@@ -54,7 +56,7 @@ st.markdown("""
     /* The Horizontal Scrolling Wrapper */
     .scroll-container {
         display: flex;
-        flex-wrap: nowrap; /* 2. FORCES CARDS INTO A SINGLE ROW */
+        flex-wrap: nowrap;
         overflow-x: auto;
         overflow-y: hidden;
         gap: 20px;
@@ -62,28 +64,30 @@ st.markdown("""
         scroll-behavior: smooth;
     }
     
-    /* Custom Red Scrollbar */
+    /* Custom Scrollbar styled for light mode */
     .scroll-container::-webkit-scrollbar { height: 12px; }
-    .scroll-container::-webkit-scrollbar-track { background: #181818; border-radius: 10px; }
-    .scroll-container::-webkit-scrollbar-thumb { background: #E50914; border-radius: 10px; border: 2px solid #181818; }
-    .scroll-container::-webkit-scrollbar-thumb:hover { background: #ff0a16; }
+    .scroll-container::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+    .scroll-container::-webkit-scrollbar-thumb { background: #cccccc; border-radius: 10px; border: 2px solid #f1f1f1; }
+    .scroll-container::-webkit-scrollbar-thumb:hover { background: #E50914; }
     
-    /* Premium Glassmorphism Movie Cards */
+    /* Movie Cards styled for Light Mode */
     .movie-card { 
         flex: 0 0 240px; 
-        background: #222222; 
+        background: #ffffff; /* White card background */
         padding: 15px; 
         border-radius: 10px; 
         text-align: center; 
         height: 600px; 
         display: flex;
         flex-direction: column; 
-        border: 1px solid #333333; 
-        transition: transform 0.2s, border-color 0.2s;
+        border: 1px solid #eaeaea; /* Light border */
+        transition: transform 0.2s, box-shadow 0.2s;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05); /* Subtle shadow for depth */
     }
     .movie-card:hover { 
         transform: translateY(-5px); 
         border-color: #E50914; 
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
     }
     
     .movie-poster { 
@@ -96,7 +100,7 @@ st.markdown("""
     
     .movie-title { 
         font-size: 1.1rem; 
-        color: white; 
+        color: #000000; /* Black text */
         font-weight: bold; 
         margin-bottom: 5px; 
         min-height: 2.8rem; 
@@ -107,7 +111,7 @@ st.markdown("""
     }
     
     .match-score { 
-        color: #46d369; 
+        color: #28a745; /* Darker green for contrast on white */
         font-weight: bold; 
         font-size: 1rem; 
         margin-bottom: 10px; 
@@ -116,7 +120,7 @@ st.markdown("""
     
     .movie-overview { 
         font-size: 0.85rem; 
-        color: #bbbbbb; 
+        color: #555555; /* Dark gray text */
         text-align: left; 
         margin-bottom: 15px; 
         line-height: 1.4;
@@ -140,6 +144,14 @@ st.markdown("""
     }
     .watch-btn:hover { background-color: #f40612; }
     
+    /* Ensures native Streamlit widgets don't clash too much */
+    .stTextInput>div>div>input {
+        color: black !important;
+    }
+    .stSelectbox>div>div>div {
+        color: black !important;
+    }
+
     #MainMenu {visibility: hidden;} footer {visibility: hidden;} header {visibility: hidden;}
     </style>
 """, unsafe_allow_html=True)
@@ -248,7 +260,7 @@ def render_movie_cards(recommendations, score_column):
         poster_url, overview, movie_link = fetch_movie_details(row['title'])
         score = row.get(score_column, 85)
         
-        # 3. FIX: Removed formatting spaces so Streamlit doesn't think this is a Markdown code block!
+        # HTML structure optimized for Streamlit markdown rendering without code-block bug
         html_content += f"""<div class="movie-card">
 <img src="{poster_url}" class="movie-poster" alt="poster">
 <div class="movie-title">{row['title']}</div>
