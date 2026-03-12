@@ -10,9 +10,9 @@ from movie_logic import (
 )
 
 # --- PAGE CONFIGURATION & CSS ---
-st.set_page_config(page_title="Zmovo (Netflix Style)", page_icon="🍿", layout="wide")
+st.set_page_config(page_title="Zmovo Search", page_icon="🍿", layout="wide")
 
-# Netflix Theme CSS (No Navigation, Floating Search)
+# Netflix Theme CSS (No Navigation, Floating Search Only)
 st.markdown("""
     <style>
     /* Main Background & Text */
@@ -23,33 +23,31 @@ st.markdown("""
     #MainMenu {visibility: hidden;} footer {visibility: hidden;} header {visibility: hidden;}
 
     /* Streamlit Search Bar Override (Floating Top Right) */
-    div[data-testid="stTextInput"] { position: absolute; top: 20px; right: 4%; z-index: 1000; width: 300px; }
-    div[data-testid="stTextInput"] input { background-color: rgba(0,0,0,0.7) !important; color: white !important; border: 1px solid rgba(255,255,255,0.3) !important; border-radius: 4px !important; padding: 10px 15px !important;}
-    div[data-testid="stTextInput"] input:focus { border-color: white !important; box-shadow: none !important; background-color: rgba(0,0,0,0.9) !important;}
+    div[data-testid="stTextInput"] { position: absolute; top: 30px; right: 4%; z-index: 1000; width: 350px; }
+    div[data-testid="stTextInput"] input { background-color: rgba(0,0,0,0.7) !important; color: white !important; border: 1px solid rgba(255,255,255,0.4) !important; border-radius: 4px !important; padding: 12px 15px !important; font-size: 1rem !important;}
+    div[data-testid="stTextInput"] input:focus { border-color: white !important; box-shadow: none !important; background-color: rgba(0,0,0,0.95) !important;}
 
     /* Hero Banner */
     .hero-banner { 
-        background-size: cover; background-position: center top; 
+        background-size: cover; background-position: center center; 
         height: 85vh; 
         display: flex; flex-direction: column; justify-content: center; padding: 0 4%;
         position: relative;
     }
-    .hero-vignette { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(77deg, rgba(0,0,0,.8) 0, rgba(0,0,0,0) 85%); pointer-events: none;}
+    .hero-vignette { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(77deg, rgba(15,15,15,0.9) 0, rgba(15,15,15,0.4) 50%, rgba(15,15,15,0.1) 100%); pointer-events: none;}
     .hero-bottom-fade { position: absolute; bottom: 0; left: 0; right: 0; height: 150px; background: linear-gradient(to top, #141414 0%, rgba(20,20,20,0) 100%); pointer-events: none;}
-    .hero-content { position: relative; z-index: 5; max-width: 45%; margin-top: 60px;}
+    .hero-content { position: relative; z-index: 5; max-width: 45%; margin-top: 40px;}
     
-    .hero-title { font-size: 4.5rem; font-weight: 900; margin: 0 0 10px 0; color: #fff; line-height: 1.1; text-transform: uppercase; text-shadow: 2px 2px 4px rgba(0,0,0,0.45);}
-    .hero-top10 { display: flex; align-items: center; gap: 10px; font-weight: bold; font-size: 1.2rem; margin-bottom: 15px; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);}
-    .top10-badge { background-color: #E50914; color: white; padding: 2px 6px; font-size: 0.8rem; font-weight: 900; border-radius: 2px; text-align: center; line-height: 1.1;}
+    .hero-title { font-size: 4rem; font-weight: 900; margin: 0 0 15px 0; color: #fff; line-height: 1.1; text-transform: uppercase; text-shadow: 2px 2px 4px rgba(0,0,0,0.6);}
     
-    .hero-meta { color: #fff; font-size: 1.2rem; margin-bottom: 25px; line-height: 1.4; font-weight: 400; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;}
+    .hero-meta { color: #fff; font-size: 1.1rem; margin-bottom: 30px; line-height: 1.5; font-weight: 400; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;}
     
-    /* Buttons */
+    /* Buttons matching your screenshot (Blue text) */
     .btn-row { display: flex; gap: 15px; }
-    .btn-play { background-color: white; color: black; padding: 10px 28px; border-radius: 4px; font-weight: 700; font-size: 1.2rem; text-decoration: none; display: flex; align-items: center; gap: 10px; transition: 0.2s;}
-    .btn-play:hover { background-color: rgba(255,255,255,0.7); }
-    .btn-info { background-color: rgba(109, 109, 110, 0.7); color: white; padding: 10px 28px; border-radius: 4px; font-weight: 700; font-size: 1.2rem; text-decoration: none; display: flex; align-items: center; gap: 10px; transition: 0.2s;}
-    .btn-info:hover { background-color: rgba(109, 109, 110, 0.4); }
+    .btn-play { background-color: white; color: #0056b3; padding: 10px 32px; border-radius: 4px; font-weight: 700; font-size: 1.2rem; text-decoration: none; display: flex; align-items: center; gap: 10px; transition: 0.2s;}
+    .btn-play:hover { background-color: rgba(255,255,255,0.8); }
+    .btn-info { background-color: rgba(109, 109, 110, 0.5); color: #4da6ff; padding: 10px 32px; border-radius: 4px; font-weight: 700; font-size: 1.2rem; text-decoration: none; display: flex; align-items: center; gap: 10px; transition: 0.2s; border: 1px solid transparent;}
+    .btn-info:hover { background-color: rgba(109, 109, 110, 0.3); border: 1px solid rgba(255,255,255,0.2);}
 
     /* Section Headers */
     .section-container { padding: 0 4%; margin-top: -20px; position: relative; z-index: 10;}
@@ -95,7 +93,6 @@ def render_movie_cards(recommendations, score_column, is_top10_row=False, show_r
         recent_html = '<div class="card-recently-added">Recently Added</div>' if show_recent else ''
         badge_html = '<div class="card-top10-badge">TOP<br>10</div>' if show_top10_badge else ''
 
-        # If it's the Top 10 row, render the large numbers behind portrait cards
         if is_top10_row:
             html_content += f"""
             <div class="top10-wrapper" onclick="window.open('{movie_link}', '_blank')">
@@ -105,7 +102,6 @@ def render_movie_cards(recommendations, score_column, is_top10_row=False, show_r
                     {recent_html}
                 </div>
             </div>"""
-        # Otherwise, render standard 16:9 horizontal cards
         else:
             html_content += f"""
             <div class="z-card" onclick="window.open('{movie_link}', '_blank')">
@@ -123,10 +119,10 @@ def render_movie_cards(recommendations, score_column, is_top10_row=False, show_r
 
 
 # --- SEARCH INPUT (Floats over the top right via CSS) ---
-search_query = st.text_input("Search", placeholder="🔍 Search titles, people, genres...", label_visibility="collapsed")
+search_query = st.text_input("Search", placeholder="Search titles, people, genres...", label_visibility="collapsed")
 
 
-# --- MAIN LOGIC & RENDERING (Preserved exactly from your code) ---
+# --- MAIN LOGIC & RENDERING ---
 if search_query:
     with st.spinner('Loading...'):
         query_vec = tfidf.transform([search_query])
@@ -138,17 +134,14 @@ if search_query:
             selected_movie = movies.iloc[best_match_idx]['title']
             poster_url, overview, _ = fetch_movie_details(selected_movie)
             
-            # HERO BANNER
+            # HERO BANNER FOR SEARCH RESULTS
             hero_html = f"""
             <div class="hero-banner" style="background-image: url('{poster_url}');">
                 <div class="hero-vignette"></div>
                 <div class="hero-bottom-fade"></div>
                 <div class="hero-content">
                     <h1 class="hero-title">{selected_movie}</h1>
-                    <div class="hero-top10">
-                        <span class="top10-badge">TOP<br>10</span> #1 in Search Results
-                    </div>
-                    <p class="hero-meta">{overview if overview else 'Desperate to meet his young daughter, a newly freed ex-con must survive a night of violence after he is forced to protect police from a ruthless gang.'}</p>
+                    <p class="hero-meta">{overview if overview else 'Desperate to survive a night of violence, a newly freed ex-con must protect police from a ruthless gang.'}</p>
                     <div class="btn-row">
                         <a href="#" class="btn-play">▶ Play</a>
                         <a href="#" class="btn-info">ⓘ More Info</a>
@@ -158,11 +151,11 @@ if search_query:
             """
             st.markdown(hero_html, unsafe_allow_html=True)
             
-            # SECTIONS (Full width)
+            # SECTIONS
             st.markdown('<div class="section-container">', unsafe_allow_html=True)
             
             st.markdown('<div class="section-title">Similar to your search</div>', unsafe_allow_html=True)
-            render_movie_cards(get_hybrid_recs(selected_movie), 'Hybrid_Score', show_top10_badge=True)
+            render_movie_cards(get_hybrid_recs(selected_movie), 'Hybrid_Score')
             
             st.markdown('<div class="section-title">Trending Now</div>', unsafe_allow_html=True)
             render_movie_cards(get_community_recs(selected_movie), 'CF_Score', show_recent=True)
@@ -179,17 +172,14 @@ if search_query:
             st.markdown('</div>', unsafe_allow_html=True)
 
 else:
-    # Default State (No Search)
+    # Default State (No Search) - Matching your latest screenshot
     st.markdown("""
-        <div class="hero-banner" style="background-image: url('https://images.unsplash.com/photo-1536440136628-849c177e76a1?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80');">
+        <div class="hero-banner" style="background-image: url('https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80');">
             <div class="hero-vignette"></div>
             <div class="hero-bottom-fade"></div>
             <div class="hero-content">
-                <h1 class="hero-title" style="font-size: 5.5rem;">BANDUAN</h1>
-                <div class="hero-top10">
-                    <span class="top10-badge">TOP<br>10</span> #1 in Movies Today
-                </div>
-                <p class="hero-meta">Desperate to meet his young daughter, a newly freed ex-con must survive a night of violence after he's forced to protect police from a ruthless gang.</p>
+                <h1 class="hero-title">WELCOME TO ZMOVO</h1>
+                <p class="hero-meta">Discover blockbuster movies, epic TV shows, and award-winning originals. Search above to start browsing.</p>
                 <div class="btn-row">
                     <a href="#" class="btn-play">▶ Play</a>
                     <a href="#" class="btn-info">ⓘ More Info</a>
@@ -200,11 +190,9 @@ else:
     
     st.markdown('<div class="section-container">', unsafe_allow_html=True)
     
-    # Top 10 Row (Uses the giant background numbers)
     st.markdown('<div class="section-title">Top 10 Movies in Malaysia Today</div>', unsafe_allow_html=True)
     render_movie_cards(movies.sort_values('vote_count', ascending=False).head(10), 'vote_average', is_top10_row=True, show_recent=True)
     
-    # Standard Row (16:9 thumbnails)
     st.markdown('<div class="section-title">New on Zmovo</div>', unsafe_allow_html=True)
     render_movie_cards(movies.head(10), 'vote_average', show_top10_badge=True)
     
