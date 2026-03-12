@@ -636,18 +636,19 @@ else:
     render_movie_cards(movies.head(10), 'vote_average', show_top10_badge=True)
     
     # Popular Movies
-st.markdown("""
-    <div class="section-header">
-        <div class="section-title">⭐ Popular Movies</div>
-        <a href="#" class="section-link">View All →</a>
-    </div>
-""", unsafe_allow_html=True)
-
-# Sort by vote_count (most voted) or vote_average (highest rated)
-render_movie_cards(
-    movies.sort_values('vote_count', ascending=False).head(10), 
-    'vote_average', 
-    show_recent=False
-)
+    st.markdown("""
+        <div class="section-header">
+            <div class="section-title">⭐ Popular Movies</div>
+            <a href="#" class="section-link">View All →</a>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    render_movie_cards(
+        movies.sort_values('vote_count', ascending=False).head(10), 
+        'vote_average', 
+        show_recent=False
+    )
+    
+    st.markdown('</div>', unsafe_allow_html=True)  # ← This line must be at the same indentation level as the other st.markdown calls
     
     st.markdown('</div>', unsafe_allow_html=True)
