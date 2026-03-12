@@ -2,8 +2,6 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import requests
-import re
-import difflib
 import ast
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
@@ -70,7 +68,7 @@ st.markdown("""
     .scroll-container::-webkit-scrollbar-thumb { background: #cccccc; border-radius: 10px; border: 2px solid #f1f1f1; }
     .scroll-container::-webkit-scrollbar-thumb:hover { background: #E50914; }
     
-    /* --- NEW: BLACK Movie Cards --- */
+    /* BLACK Movie Cards */
     .movie-card { 
         flex: 0 0 240px; 
         background: #121212; /* Deep Black Background */
@@ -98,10 +96,10 @@ st.markdown("""
         margin-bottom: 12px; 
     }
     
-    /* Changed text back to white so it shows up on the black cards! */
+    /* White text for black cards */
     .movie-title { 
         font-size: 1.1rem; 
-        color: #ffffff; /* White text */
+        color: #ffffff; 
         font-weight: bold; 
         margin-bottom: 5px; 
         min-height: 2.8rem; 
@@ -112,16 +110,16 @@ st.markdown("""
     }
     
     .match-score { 
-        color: #46d369; /* Bright green for black background */
+        color: #46d369; 
         font-weight: bold; 
         font-size: 1rem; 
-        margin-bottom: 10px; 
+        margin-bottom: 5px; 
         min-height: 1.2rem; 
     }
     
     .movie-overview { 
         font-size: 0.85rem; 
-        color: #cccccc; /* Light gray text */
+        color: #cccccc; 
         text-align: left; 
         margin-bottom: 15px; 
         line-height: 1.4;
@@ -131,7 +129,6 @@ st.markdown("""
         overflow: hidden;
         flex-grow: 1; 
     }
-    /* ------------------------------ */
     
     .watch-btn { 
         background-color: #E50914; 
@@ -147,13 +144,8 @@ st.markdown("""
     .watch-btn:hover { background-color: #f40612; }
     
     /* Ensures native Streamlit widgets don't clash */
-    .stTextInput>div>div>input {
-        color: black !important;
-    }
-    .stSelectbox>div>div>div {
-        color: black !important;
-    }
-
+    .stTextInput>div>div>input { color: black !important; }
+    .stSelectbox>div>div>div { color: black !important; }
     #MainMenu {visibility: hidden;} footer {visibility: hidden;} header {visibility: hidden;}
     </style>
 """, unsafe_allow_html=True)
@@ -177,7 +169,8 @@ def load_and_prep_data():
     df['director'] = df['director'].fillna('')
     df['title'] = df['title'].astype(str)
     
-    df['content_features'] = df['genres_clean'] + " " + df['actors'] + " " + df['director'] + " " + df['overview']
+    # NLP UPGRADE: We injected the title twice so the AI knows it's highly important!
+    df['content_features'] = df['title'] + " " + df['title'] + " " + df['genres_clean'] + " " + df['actors'] + " " + df['director'] + " " + df['overview']
     
     return df.dropna(subset=['title']).reset_index(drop=True)
 
@@ -186,11 +179,11 @@ def train_tfidf_model(df):
     tfidf = TfidfVectorizer(stop_words='english')
     tfidf_matrix = tfidf.fit_transform(df['content_features'])
     cosine_sim = cosine_similarity(tfidf_matrix, tfidf_matrix)
-    return cosine_sim
+    # Returning all 3 tools so our Universal Search can use them
+    return tfidf, tfidf_matrix, cosine_sim
 
 movies = load_and_prep_data()
-cosine_sim = train_tfidf_model(movies)
-movie_list = sorted(movies['title'].unique())
+tfidf, tfidf_matrix, cosine_sim = train_tfidf_model(movies)
 
 # --- API HELPER FUNCTIONS ---
 @st.cache_data(ttl=86400) 
@@ -258,7 +251,7 @@ def get_hybrid_recs(movie_title):
 def render_movie_cards(recommendations, score_column):
     html_content = '<div class="scroll-container">'
     
-    # 1. NEW LOGIC: Determine the exact reason for the match!
+    # EXPLAINABLE AI LOGIC
     if score_column == 'CB_Score':
         match_reason = "🧬 Matches Actors, Director & Plot"
     elif score_column == 'CF_Score':
@@ -272,7 +265,6 @@ def render_movie_cards(recommendations, score_column):
         poster_url, overview, movie_link = fetch_movie_details(row['title'])
         score = row.get(score_column, 85)
         
-        # 2. NEW UI: Insert the 'match_reason' right below the green percentage!
         html_content += f"""<div class="movie-card">
 <img src="{poster_url}" class="movie-poster" alt="poster">
 <div class="movie-title">{row['title']}</div>
@@ -290,22 +282,26 @@ st.markdown('<p class="main-title">CineMatch Pro</p>', unsafe_allow_html=True)
 st.markdown('<p class="sub-title">Powered by Content-Based & Community Algorithms.</p>', unsafe_allow_html=True)
 
 col1, col2 = st.columns([3, 1])
-search_query = col1.text_input("Search", placeholder="Type a movie title or topic (e.g., 'car', 'space')...", label_visibility="collapsed")
+search_query = col1.text_input("Search", placeholder="Type a movie title or topic (e.g., 'race car')...", label_visibility="collapsed")
 selected_display = col2.selectbox("Choose Model:", ["Show All Rows", "✨ Top Picks (Hybrid)", "👥 Community Picks", "🎭 AI Similar (Content-Based)"], label_visibility="collapsed")
 
 st.divider()
 
 if search_query:
     with st.spinner('Curating dashboard...'):
-        closest_matches = difflib.get_close_matches(search_query.title(), movie_list, n=1, cutoff=0.75)
+        # UNIVERSAL NLP SEARCH: Converts user input (title or plot description) into math
+        query_vec = tfidf.transform([search_query])
+        sim_scores = cosine_similarity(query_vec, tfidf_matrix).flatten()
         
-        if closest_matches:
-            selected_movie = closest_matches[0]
-
-            idx = movies[movies['title'] == selected_movie].index[0]
-            movie_type = movies.iloc[idx]['genres_clean'].replace(" ", ", ")
+        best_match_idx = sim_scores.argmax()
+        best_score = sim_scores[best_match_idx]
+        
+        # If the AI finds a logical match in your CSV database
+        if best_score > 0:
+            selected_movie = movies.iloc[best_match_idx]['title']
+            movie_type = movies.iloc[best_match_idx]['genres_clean'].replace(" ", ", ")
             
-            st.success(f"🎯 Local AI Models activated for: **{selected_movie}**")
+            st.success(f"🧠 NLP AI analyzed your search and selected: **{selected_movie}**")
             st.info(f"🏷️ **Movie Type:** {movie_type}")
             
             if selected_display in ["Show All Rows", "✨ Top Picks (Hybrid)"]:
@@ -321,7 +317,8 @@ if search_query:
                 render_movie_cards(get_content_based_recs(selected_movie), 'CB_Score')
                     
         else:
-            st.info(f"🌐 Searching global TMDB database for topic: **'{search_query}'**")
+            # If the user types gibberish that doesn't match any movie DNA, fail gracefully
+            st.info(f"🌐 No local matches. Searching global TMDB database for: **'{search_query}'**")
             topic_results = search_tmdb_topic(search_query)
             
             if topic_results:
@@ -330,4 +327,4 @@ if search_query:
             else:
                 st.warning("No movies found for that topic.")
 else:
-    st.info("👆 Type a movie name (e.g., 'Iron Man') to run your AI models, or a topic (e.g., 'car') to search globally!")
+    st.info("👆 Type a movie name (e.g., 'Iron Man') OR a description (e.g., 'race car') to run your AI models!")
