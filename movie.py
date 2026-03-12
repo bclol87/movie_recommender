@@ -1,8 +1,10 @@
 import streamlit as st
 import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
+import random
 
 # --- Import logic from movie_logic.py ---
+# Note: Ensure this module exists in your actual directory
 from movie_logic import (
     movies, cosine_sim, tfidf, tfidf_matrix,
     fetch_movie_details, search_tmdb_topic,
@@ -12,41 +14,67 @@ from movie_logic import (
 # --- PAGE CONFIGURATION ---
 st.set_page_config(page_title="Zmovo - Stream Smarter", page_icon="🎬", layout="wide", initial_sidebar_state="collapsed")
 
-# --- SIMPLIFIED CSS ---
+# --- ENHANCED CSS TO MATCH NETFLIX UI ---
 st.markdown("""
     <style>
+    @import url('https://fonts.googleapis.com/css2?family=Helvetica+Neue:wght@300;400;500;700;900&display=swap');
+    
     /* Global Styles */
+    * {
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+    
     .stApp {
-        background: #0a0a0a;
+        background-color: #141414;
         color: #ffffff;
     }
     
-    /* Hide Streamlit Elements */
-    #MainMenu, footer, header {
-        display: none !important;
-    }
+    /* Hide Streamlit Default Elements */
+    #MainMenu, footer, header { display: none !important; }
+    .block-container { padding: 0 !important; max-width: 100% !important; overflow-x: hidden; }
     
-    .block-container {
-        padding: 0 !important;
-        max-width: 100% !important;
-    }
-    
-    /* Search Bar */
-    div[data-testid="stTextInput"] {
+    /* Fake Netflix Navbar */
+    .netflix-navbar {
         position: fixed;
-        top: 30px;
-        right: 4%;
-        z-index: 9999;
-        width: 400px;
+        top: 0;
+        width: 100%;
+        height: 68px;
+        background: linear-gradient(to bottom, rgba(0,0,0,0.7) 10%, rgba(0,0,0,0));
+        z-index: 999;
+        display: flex;
+        align-items: center;
+        padding: 0 4%;
+        gap: 30px;
     }
+    .netflix-logo { color: #E50914; font-size: 1.8rem; font-weight: 900; letter-spacing: 1px; }
+    .nav-links a { color: #e5e5e5; text-decoration: none; font-size: 0.85rem; font-weight: 500; transition: color 0.4s; margin-right: 18px; }
+    .nav-links a:hover { color: #b3b3b3; }
+    .nav-links a.active { font-weight: 700; color: white; }
     
+    /* Sub Header (Movies Dropdown) */
+    .sub-header {
+        position: absolute;
+        top: 80px;
+        left: 4%;
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+    .sub-header h2 { font-size: 2.2rem; font-weight: 700; text-shadow: 2px 2px 4px rgba(0,0,0,0.45); }
+    .genre-dropdown { background: rgba(0,0,0,0.8); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 4px 10px; font-weight: bold; cursor: pointer; }
+    
+    /* Search Bar Tweaks */
+    div[data-testid="stTextInput"] {
+        position: fixed; top: 15px; right: 4%; z-index: 1000; width: 250px;
+    }
     div[data-testid="stTextInput"] input {
-        background: rgba(20, 20, 20, 0.9) !important;
-        border: 2px solid rgba(229, 9, 20, 0.5) !important;
-        border-radius: 40px !important;
-        color: white !important;
-        font-size: 1rem !important;
-        padding: 15px 25px !important;
+        background: rgba(0, 0, 0, 0.7) !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        color: white !important; padding: 8px 15px !important;
     }
     
     /* Hero Banner */
@@ -55,432 +83,230 @@ st.markdown("""
         position: relative;
         display: flex;
         align-items: center;
-        padding: 0 6%;
+        padding: 0 4%;
         background-size: cover !important;
-        background-position: center !important;
+        background-position: center 10% !important;
     }
     
     .hero-vignette {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: linear-gradient(77deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 50%, rgba(0,0,0,0.2) 100%);
-        pointer-events: none;
+        position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+        background: linear-gradient(77deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 40%, transparent 85%);
     }
     
     .hero-bottom-fade {
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        height: 150px;
-        background: linear-gradient(to top, #0a0a0a 0%, transparent 100%);
-        pointer-events: none;
+        position: absolute; bottom: 0; left: 0; right: 0; height: 150px;
+        background: linear-gradient(to top, #141414 0%, transparent 100%);
     }
     
     .hero-content {
-        position: relative;
-        z-index: 10;
-        max-width: 700px;
+        position: relative; z-index: 10; max-width: 600px; padding-top: 50px;
     }
     
     .hero-title {
-        font-size: 4rem;
-        font-weight: 900;
-        margin-bottom: 20px;
-        color: white;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        font-size: 5rem; font-weight: 900; margin-bottom: 10px;
+        text-transform: uppercase; font-family: Impact, sans-serif;
+        letter-spacing: 2px; text-shadow: 2px 2px 10px rgba(0,0,0,0.5);
     }
     
-    .hero-meta {
-        font-size: 1.2rem;
-        color: rgba(255,255,255,0.8);
-        margin-bottom: 30px;
-        line-height: 1.6;
+    .hero-top10-badge {
+        display: flex; align-items: center; gap: 10px; margin-bottom: 15px; font-weight: bold; font-size: 1.2rem; text-shadow: 1px 1px 2px black;
+    }
+    .hero-top10-icon {
+        background-color: #E50914; color: white; padding: 2px 6px; font-size: 0.8rem; border-radius: 2px;
     }
     
-    /* Buttons */
-    .btn-row {
-        display: flex;
-        gap: 15px;
-    }
+    .hero-meta { font-size: 1.2rem; color: #fff; margin-bottom: 25px; line-height: 1.4; text-shadow: 1px 1px 2px black; }
+    
+    /* Buttons matching image exactly */
+    .btn-row { display: flex; gap: 10px; }
     
     .btn-play, .btn-info {
-        padding: 12px 30px;
-        border-radius: 40px;
-        font-weight: 600;
-        font-size: 1.1rem;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        cursor: pointer;
-        border: none;
+        padding: 10px 24px 10px 20px;
+        border-radius: 4px; font-weight: bold; font-size: 1.2rem;
+        text-decoration: none; display: inline-flex; align-items: center; gap: 10px;
+        transition: all 0.2s; border: none; cursor: pointer;
     }
     
-    .btn-play {
-        background: #e50914;
-        color: white;
-    }
+    .btn-play { background: white; color: black; }
+    .btn-play:hover { background: rgba(255, 255, 255, 0.7); }
     
-    .btn-info {
-        background: rgba(255, 255, 255, 0.2);
-        color: white;
-        border: 1px solid rgba(255, 255, 255, 0.3);
-    }
+    .btn-info { background: rgba(109, 109, 110, 0.7); color: white; }
+    .btn-info:hover { background: rgba(109, 109, 110, 0.4); }
     
     /* Section Styles */
-    .section-container {
-        padding: 0 6%;
-        margin-top: -40px;
-        position: relative;
-        z-index: 20;
-    }
+    .section-container { padding: 0 4%; position: relative; z-index: 20; margin-top: -30px; }
+    .section-title { font-size: 1.2vw; font-weight: 500; color: #e5e5e5; margin-bottom: 10px; margin-top: 3vw; }
     
-    .section-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 15px;
-    }
-    
-    .section-title {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: white;
-    }
-    
-    .section-link {
-        color: rgba(255,255,255,0.6);
-        text-decoration: none;
-        font-size: 0.9rem;
-    }
-    
-    /* Horizontal Scroll Container */
+    /* Scroll Containers */
     .scroll-container {
-        display: flex;
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        gap: 15px;
-        padding: 10px 0 30px 0;
-        scroll-behavior: smooth;
+        display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 8px;
+        padding-bottom: 20px; scroll-behavior: smooth; scrollbar-width: none;
     }
+    .scroll-container::-webkit-scrollbar { display: none; }
     
-    .scroll-container::-webkit-scrollbar {
-        display: none;
-    }
-    
-    /* Movie Cards */
+    /* Standard Landscape Card */
     .movie-card {
-        flex: 0 0 280px;
-        height: 158px;
-        border-radius: 4px;
-        overflow: hidden;
-        position: relative;
-        cursor: pointer;
-        transition: transform 0.3s ease;
-        border: 1px solid rgba(255,255,255,0.1);
+        flex: 0 0 240px; aspect-ratio: 16/9; border-radius: 4px; overflow: hidden;
+        position: relative; cursor: pointer; transition: transform 0.3s ease;
+        background-color: #222;
     }
+    .movie-card:hover { transform: scale(1.05); z-index: 5; }
+    .movie-card img { width: 100%; height: 100%; object-fit: cover; }
     
-    .movie-card:hover {
-        transform: scale(1.05);
-        z-index: 30;
-        border-color: #e50914;
-    }
-    
-    .movie-card img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-    
-    /* Card Overlay */
-    .card-overlay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.3) 70%);
-        opacity: 0;
-        transition: opacity 0.3s ease;
-        display: flex;
-        flex-direction: column;
-        justify-content: flex-end;
-        padding: 15px;
-    }
-    
-    .movie-card:hover .card-overlay {
-        opacity: 1;
-    }
-    
-    .card-match {
-        color: #46d369;
-        font-weight: 700;
-        font-size: 0.9rem;
-    }
-    
-    .card-title {
-        color: white;
-        font-weight: 600;
-        font-size: 0.9rem;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-    
-    /* Badges */
-    .badge-top10 {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        background: #e50914;
-        color: white;
-        font-size: 0.7rem;
-        font-weight: 900;
-        padding: 3px 6px;
-        border-radius: 2px;
-        z-index: 5;
-    }
-    
-    .badge-recent {
-        position: absolute;
-        bottom: 10px;
-        left: 10px;
-        background: rgba(0,0,0,0.7);
-        color: white;
-        font-size: 0.7rem;
-        padding: 3px 8px;
-        border-radius: 12px;
-        z-index: 5;
-    }
-    
-    /* Top 10 Cards */
+    /* Top 10 Giant Numbers Card Styles */
     .top10-wrapper {
-        flex: 0 0 300px;
-        display: flex;
-        position: relative;
-        cursor: pointer;
-        height: 200px;
+        flex: 0 0 220px; height: 210px; display: flex; align-items: flex-end;
+        position: relative; cursor: pointer; overflow: visible;
     }
-    
     .top10-number {
-        font-size: 12rem;
-        font-weight: 900;
-        color: transparent;
-        -webkit-text-stroke: 3px #e50914;
-        position: absolute;
-        left: -30px;
-        bottom: -40px;
-        z-index: 1;
-        line-height: 1;
+        font-size: 220px; font-weight: 900;
+        color: #000; -webkit-text-stroke: 4px #595959;
+        line-height: 0.8; letter-spacing: -10px;
+        position: absolute; left: 0; bottom: -15px; z-index: 1;
     }
-    
     .top10-card {
-        flex: 1;
-        height: 100%;
-        border-radius: 4px;
-        overflow: hidden;
-        position: relative;
-        z-index: 2;
-        margin-left: 50px;
-        border: 1px solid rgba(255,255,255,0.1);
+        width: 140px; aspect-ratio: 2/3; border-radius: 4px;
+        overflow: hidden; position: absolute; right: 0; bottom: 0; z-index: 2;
+        box-shadow: -5px 0 15px rgba(0,0,0,0.5); transition: transform 0.3s ease;
     }
-    
-    .top10-card img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-    
-    /* Debug info styling */
-    .debug-info {
-        color: #999;
-        font-size: 0.8rem;
-        margin: 5px 0;
+    .top10-wrapper:hover .top10-card { transform: scale(1.05); }
+    .top10-card img { width: 100%; height: 100%; object-fit: cover; }
+
+    /* Netflix Top Red Badge */
+    .badge-top-left {
+        position: absolute; top: 0; left: 5px; width: 25px; z-index: 10;
     }
     </style>
 """, unsafe_allow_html=True)
 
+# --- FAKE NAVBAR HTML ---
+st.markdown("""
+    <div class="netflix-navbar">
+        <div class="netflix-logo">ZMOVO</div>
+        <div class="nav-links">
+            <a href="#">Home</a>
+            <a href="#">Shows</a>
+            <a href="#" class="active">Movies</a>
+            <a href="#">Games</a>
+            <a href="#">New & Popular</a>
+            <a href="#">My List</a>
+            <a href="#">Browse by Languages</a>
+        </div>
+    </div>
+    <div class="sub-header">
+        <h2>Movies</h2>
+        <select class="genre-dropdown"><option>Genres ▾</option></select>
+    </div>
+""", unsafe_allow_html=True)
+
+
 # --- RENDER MOVIE CARDS FUNCTION ---
-def render_movie_cards(recommendations, score_column, is_top10_row=False, show_recent=False, show_top10_badge=False):
-    # Show debug info
-    st.markdown(f'<div class="debug-info">Found {len(recommendations)} recommendations</div>', unsafe_allow_html=True)
-    
+def render_movie_cards(recommendations, is_top10_row=False):
     html_content = '<div class="scroll-container">'
-    cards_added = 0
     
     for i, (_, row) in enumerate(recommendations.iterrows()):
         try:
             poster_url, overview, movie_link = fetch_movie_details(row['title'])
             
-            # Skip if no poster (optional - remove if you want to show all)
-            # if "No+Poster" in poster_url:
-            #     continue
+            # Simulated Netflix "N" ribbon
+            netflix_badge = '<img src="https://upload.wikimedia.org/wikipedia/commons/0/0c/Netflix_2015_N_logo.svg" class="badge-top-left">'
             
-            score = row.get(score_column, 85)
-            
-            recent_badge = '<div class="badge-recent">✨ New</div>' if show_recent else ''
-            top10_badge = '<div class="badge-top10">TOP 10</div>' if show_top10_badge else ''
-
             if is_top10_row:
+                # Layout for the Giant Number Row
                 html_content += f"""
                 <div class="top10-wrapper" onclick="window.open('{movie_link}', '_blank')">
                     <div class="top10-number">{i+1}</div>
                     <div class="top10-card">
-                        <img src="{poster_url}" alt="{row['title']}" onerror="this.src='https://via.placeholder.com/300x450?text=No+Image'">
-                        {recent_badge}
+                        {netflix_badge}
+                        <img src="{poster_url}" alt="{row['title']}">
                     </div>
                 </div>"""
             else:
+                # Layout for standard Landscape Row
+                # For a landscape image, tmdb usually provides backdrop_paths. If fetch_movie_details only fetches posters,
+                # you might want to modify your movie_logic to fetch backdrops for these rows. 
+                # Assuming poster_url serves as the image here:
                 html_content += f"""
                 <div class="movie-card" onclick="window.open('{movie_link}', '_blank')">
-                    <img src="{poster_url}" alt="{row['title']}" onerror="this.src='https://via.placeholder.com/280x158?text=No+Image'">
-                    {top10_badge}
-                    {recent_badge}
-                    <div class="card-overlay">
-                        <div class="card-match">{score:.0f}% Match</div>
-                        <div class="card-title">{row['title']}</div>
-                    </div>
+                    {netflix_badge}
+                    <img src="{poster_url}" alt="{row['title']}">
                 </div>"""
-            cards_added += 1
-        except Exception as e:
-            st.markdown(f'<div class="debug-info">Error with {row["title"]}: {str(e)}</div>', unsafe_allow_html=True)
+        except Exception:
             continue
-        
+            
     html_content += '</div>'
-    
-    if cards_added > 0:
-        st.markdown(html_content, unsafe_allow_html=True)
-        st.markdown(f'<div class="debug-info">Displayed {cards_added} movies</div>', unsafe_allow_html=True)
-    else:
-        st.warning("No movies could be displayed")
+    st.markdown(html_content, unsafe_allow_html=True)
+
 
 # --- SEARCH INPUT ---
-search_query = st.text_input("Search movies", placeholder="🔍 Search for movies, shows, genres...", label_visibility="collapsed")
+search_query = st.text_input("", placeholder="🔍 Titles, people, genres", label_visibility="collapsed")
 
-# --- MAIN LOGIC ---
+
+# --- MAIN UI LOGIC ---
 if search_query:
-    with st.spinner('Loading...'):
+    with st.spinner(''):
         query_vec = tfidf.transform([search_query])
         sim_scores = cosine_similarity(query_vec, tfidf_matrix).flatten()
         best_match_idx = sim_scores.argmax()
-        best_score = sim_scores[best_match_idx]
         
-        if best_score > 0:
+        if sim_scores[best_match_idx] > 0:
             selected_movie = movies.iloc[best_match_idx]['title']
             poster_url, overview, _ = fetch_movie_details(selected_movie)
             
-            # Hero Banner
-            hero_html = f"""
-            <div class="hero-banner" style="background-image: url('{poster_url}');">
-                <div class="hero-vignette"></div>
-                <div class="hero-bottom-fade"></div>
+            # Simple hero for search result
+            st.markdown(f"""
+            <div class="hero-banner" style="background-image: url('{poster_url}'); height: 60vh;">
+                <div class="hero-vignette"></div><div class="hero-bottom-fade"></div>
                 <div class="hero-content">
                     <h1 class="hero-title">{selected_movie}</h1>
-                    <p class="hero-meta">{overview}</p>
-                    <div class="btn-row">
-                        <a href="#" class="btn-play">▶ Play</a>
-                        <a href="#" class="btn-info">ⓘ More Info</a>
-                    </div>
+                    <p class="hero-meta">{overview[:150]}...</p>
                 </div>
             </div>
-            """
-            st.markdown(hero_html, unsafe_allow_html=True)
-            
-            # Content Sections
-            st.markdown('<div class="section-container">', unsafe_allow_html=True)
-            
-            # Similar Movies
-            st.markdown("""
-                <div class="section-header">
-                    <div class="section-title">More Like This</div>
-                    <a href="#" class="section-link">Browse All →</a>
-                </div>
+            <div class="section-container">
+                <div class="section-title">Similar to {selected_movie}</div>
             """, unsafe_allow_html=True)
-            render_movie_cards(get_hybrid_recs(selected_movie), 'Hybrid_Score')
-            
-            # Trending Now
-            st.markdown("""
-                <div class="section-header">
-                    <div class="section-title">🔥 Trending Now</div>
-                    <a href="#" class="section-link">View All →</a>
-                </div>
-            """, unsafe_allow_html=True)
-            render_movie_cards(get_community_recs(selected_movie), 'CF_Score', show_recent=True)
-            
-            st.markdown('</div>', unsafe_allow_html=True)
-            
-        else:
-            # Global Search Results
-            st.markdown('<div class="section-container" style="margin-top: 120px;">', unsafe_allow_html=True)
-            st.markdown("""
-                <div class="section-header">
-                    <div class="section-title">🔍 Search Results</div>
-                </div>
-            """, unsafe_allow_html=True)
-            
-            topic_results = search_tmdb_topic(search_query)
-            if topic_results:
-                render_movie_cards(pd.DataFrame(topic_results), 'score')
-            else:
-                st.markdown(f"""
-                    <div style="text-align: center; padding: 100px 0; color: #666;">
-                        <h2>No results found for "{search_query}"</h2>
-                        <p>Try searching for something else</p>
-                    </div>
-                """, unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
+            render_movie_cards(get_hybrid_recs(selected_movie))
+            st.markdown("</div>", unsafe_allow_html=True)
 
 else:
-    # Default Homepage
-    # Hero Banner
-    hero_image = "https://images.unsplash.com/photo-1626814026160-2237a95fc5a0?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80"
+    # --- DEFAULT HOMEPAGE ---
+    
+    # Hero Banner (Matching the BANDUAN image)
+    hero_image = "https://images.unsplash.com/photo-1536440136628-849c177e76a1?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80" # Placeholder for hero backdrop
     st.markdown(f"""
         <div class="hero-banner" style="background-image: url('{hero_image}');">
             <div class="hero-vignette"></div>
             <div class="hero-bottom-fade"></div>
             <div class="hero-content">
-                <h1 class="hero-title">WELCOME TO ZMOVO</h1>
-                <p class="hero-meta">Experience the ultimate streaming destination. Watch blockbuster movies, exclusive originals, and trending shows.</p>
+                <h1 class="hero-title">ZMOVO</h1>
+                <div class="hero-top10-badge">
+                    <span class="hero-top10-icon">TOP<br>10</span>
+                    #1 in Movies Today
+                </div>
+                <p class="hero-meta">Desperate to meet his young daughter, a newly freed ex-con must survive a night of violence after he's forced to protect police from a ruthless gang.</p>
                 <div class="btn-row">
-                    <a href="#" class="btn-play">▶ Start Watching</a>
-                    <a href="#" class="btn-info">ⓘ Learn More</a>
+                    <button class="btn-play">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M8 5v14l11-7z"/></svg>
+                        Play
+                    </button>
+                    <button class="btn-info">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                        More Info
+                    </button>
                 </div>
             </div>
         </div>
     """, unsafe_allow_html=True)
     
-    # Content Sections
+    # Content Rows
     st.markdown('<div class="section-container">', unsafe_allow_html=True)
     
-    # Top 10 Section
-    st.markdown("""
-        <div class="section-header">
-            <div class="section-title">🇲🇾 Top 10 in Malaysia Today</div>
-            <a href="#" class="section-link">See All →</a>
-        </div>
-    """, unsafe_allow_html=True)
-    render_movie_cards(movies.sort_values('vote_count', ascending=False).head(10), 'vote_average', is_top10_row=True, show_recent=True)
+    # Row 1: Top 10 Giant Numbers
+    st.markdown('<div class="section-title">Top 10 Movies in Malaysia Today</div>', unsafe_allow_html=True)
+    render_movie_cards(movies.sort_values('vote_count', ascending=False).head(10), is_top10_row=True)
     
-    # New Releases
-    st.markdown("""
-        <div class="section-header">
-            <div class="section-title">🎉 New on Zmovo</div>
-            <a href="#" class="section-link">Explore New Releases →</a>
-        </div>
-    """, unsafe_allow_html=True)
-    render_movie_cards(movies.head(10), 'vote_average', show_top10_badge=True)
+    # Row 2: Standard Landscape Posters
+    st.markdown('<div class="section-title">New on Zmovo</div>', unsafe_allow_html=True)
+    render_movie_cards(movies.head(10), is_top10_row=False)
     
-    # Popular Movies
-    st.markdown("""
-        <div class="section-header">
-            <div class="section-title">⭐ Popular Movies</div>
-            <a href="#" class="section-link">View All →</a>
-        </div>
-    """, unsafe_allow_html=True)
-    render_movie_cards(movies.sort_values('vote_count', ascending=False).head(10), 'vote_average', show_recent=False)
-    
-    st.markdown('</div>', unsafe_allow_html=True)
+    # Row 3: We Think You'll Love
