@@ -72,49 +72,30 @@ def search_tmdb_topic(query):
     except: return []
 
 # --- CORE ALGORITHMS ---
-# --- DEBUG VERSION OF RECOMMENDATION FUNCTIONS ---
 def get_content_based_recs(movie_title):
-    try:
-        idx = movies[movies['title'] == movie_title].index[0]
-        sim_scores = list(enumerate(cosine_sim[idx]))
-        sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)[1:21]  # Skip first (itself)
-        
-        recs = movies.iloc[[i[0] for i in sim_scores]].copy()
-        recs['CB_Score'] = [i[1] * 100 for i in sim_scores]
-        print(f"Content-based: Found {len(recs)} recommendations for {movie_title}")
-        return recs
-    except Exception as e:
-        print(f"Error in content-based recs: {e}")
-        return movies.head(5)  # Fallback
+    idx = movies[movies['title'] == movie_title].index[0]
+    sim_scores = list(enumerate(cosine_sim[idx]))
+    sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)[0:20]
+    
+    recs = movies.iloc[[i[0] for i in sim_scores]].copy()
+    recs['CB_Score'] = [i[1] * 100 for i in sim_scores]
+    return recs
 
 def get_community_recs(movie_title):
-    try:
-        idx = movies[movies['title'] == movie_title].index[0]
-        target_genres = movies.iloc[idx]['genres_clean'].split()
-        if not target_genres: 
-            return movies.head(20)
-        
-        pattern = '|'.join(target_genres)
-        pool = movies[movies['genres_clean'].str.contains(pattern, case=False, na=False)].copy()
-        
-        pool['CF_Score'] = (pool['vote_average'] / 10) * 100
-        result = pool.sort_values(['vote_count', 'vote_average'], ascending=[False, False]).head(20)
-        print(f"Community: Found {len(result)} recommendations for {movie_title}")
-        return result
-    except Exception as e:
-        print(f"Error in community recs: {e}")
-        return movies.head(5)  # Fallback
+    idx = movies[movies['title'] == movie_title].index[0]
+    target_genres = movies.iloc[idx]['genres_clean'].split()
+    if not target_genres: return movies.head(20)
+    
+    pattern = '|'.join(target_genres)
+    pool = movies[movies['genres_clean'].str.contains(pattern, case=False, na=False)].copy()
+    
+    pool['CF_Score'] = (pool['vote_average'] / 10) * 100
+    return pool.sort_values(['vote_count', 'vote_average'], ascending=[False, False]).head(20)
 
 def get_hybrid_recs(movie_title):
-    try:
-        cb = get_content_based_recs(movie_title)
-        cf = get_community_recs(movie_title)
-        
-        hybrid = pd.concat([cb, cf]).drop_duplicates(subset=['id'] if 'id' in cb.columns else ['title'])
-        hybrid['Hybrid_Score'] = ((hybrid['vote_average']/10)*100 * 0.3) + (hybrid.get('CB_Score', 50) * 0.7)
-        result = hybrid.sort_values('Hybrid_Score', ascending=False).head(20)
-        print(f"Hybrid: Found {len(result)} recommendations for {movie_title}")
-        return result
-    except Exception as e:
-        print(f"Error in hybrid recs: {e}")
-        return movies.head(10)  # Fallback
+    cb = get_content_based_recs(movie_title)
+    cf = get_community_recs(movie_title)
+    
+    hybrid = pd.concat([cb, cf]).drop_duplicates(subset=['id'])
+    hybrid['Hybrid_Score'] = ((hybrid['vote_average']/10)*100 * 0.3) + (hybrid.get('CB_Score', 50) * 0.7)
+    return hybrid.sort_values('Hybrid_Score', ascending=False).head(20)
