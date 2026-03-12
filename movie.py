@@ -12,7 +12,6 @@ API_KEY = "3eb39709869b67fd15b086e095c5cbec"
 # --- PAGE CONFIGURATION & CSS ---
 st.set_page_config(page_title="CineMatch Pro", page_icon="🍿", layout="wide")
 
-# Setting up the white background with BLACK movie cards
 # --- MAIN PAGE RENDERING (Dark Theme Edition) ---
 # Update CSS for a cohesive dark theme
 st.markdown(\"\"\"
