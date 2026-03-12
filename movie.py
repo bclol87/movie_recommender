@@ -280,33 +280,40 @@ def render_movie_row(recommendations, title, score_column=None):
     if recommendations.empty:
         return
     
+    # Use st.markdown for the category header (this works fine)
     st.markdown(f'<div class="category-header">{title}</div>', unsafe_allow_html=True)
     
+    # Create the HTML for the movies row
     html = '<div class="movies-row">'
     
-    for _, row in recommendations.head(15).iterrows():  # Show up to 15 movies
+    for _, row in recommendations.head(15).iterrows():
         poster_url, overview, movie_link = fetch_movie_details(row['title'])
         
         # Get rating
         if score_column and score_column in row:
             rating = f"{row[score_column]:.1f}%"
         else:
-            rating = f"{row.get('vote_average', 0)*10:.0f}%"
+            rating = f"{row.get('vote_average', 0)*10:.1f}%"
         
-        # Get year (if available)
+        # Get year
         year = ""
         if 'release_date' in row and pd.notna(row['release_date']):
             year = str(row['release_date'])[:4]
         
+        # Get genre
+        genre = ""
+        if 'genres_clean' in row and pd.notna(row['genres_clean']):
+            genre = row['genres_clean'].split()[0] if row['genres_clean'].split() else ""
+        
         html += f'''
             <div class="movie-card">
                 <img src="{poster_url}" class="movie-poster" alt="{row['title']}">
-                <div class="rating-badge">⭐ {rating}</div>
-                {f'<div class="year-badge">{year}</div>' if year else ''}
+                <div class="rating-badge">★ {rating}</div>
+                <div class="year-badge">{year if year else 'N/A'}</div>
                 <div class="movie-info">
                     <div class="movie-title">{row['title']}</div>
                     <div class="movie-meta">
-                        <span>{row.get('genres_clean', '').split()[0] if pd.notna(row.get('genres_clean')) else ''}</span>
+                        <span>{genre if genre else 'Movie'}</span>
                         <span>•</span>
                         <span>{year if year else 'N/A'}</span>
                     </div>
@@ -315,6 +322,8 @@ def render_movie_row(recommendations, title, score_column=None):
         '''
     
     html += '</div>'
+    
+    # THIS IS THE KEY PART - make sure unsafe_allow_html=True is set
     st.markdown(html, unsafe_allow_html=True)
 
 # --- MAIN APP LAYOUT ---
