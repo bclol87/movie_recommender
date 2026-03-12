@@ -263,122 +263,99 @@ st.markdown("""
     }
     
     /* Premium Movie Cards */
-    .movie-card {
-        flex: 0 0 300px;
-        aspect-ratio: 16/9;
-        border-radius: 8px;
-        overflow: hidden;
-        position: relative;
-        cursor: pointer;
-        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        border: 2px solid transparent;
-        box-shadow: 0 10px 20px rgba(0,0,0,0.3);
-    }
-    
-    .movie-card:hover {
-        transform: scale(1.1) translateY(-10px);
-        border-color: #e50914;
-        box-shadow: 0 20px 30px rgba(229, 9, 20, 0.3);
-        z-index: 30;
-    }
-    
-    .movie-card img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        transition: transform 0.4s ease;
-    }
-    
-    .movie-card:hover img {
-        transform: scale(1.1);
-    }
-    
-    /* Card Overlay */
-    .card-overlay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.2) 60%);
-        opacity: 0;
-        transition: opacity 0.3s ease;
-        display: flex;
-        flex-direction: column;
-        justify-content: flex-end;
-        padding: 20px;
-    }
-    
-    .movie-card:hover .card-overlay {
-        opacity: 1;
-    }
-    
-    .card-match {
-        color: #46d369;
-        font-weight: 700;
-        font-size: 0.9rem;
-        margin-bottom: 5px;
-        animation: slideUp 0.3s ease;
-    }
-    
-    .card-title {
-        color: white;
-        font-weight: 700;
-        font-size: 1rem;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        animation: slideUp 0.3s ease 0.05s both;
-    }
-    
-    /* Top 10 Cards */
-    .top10-wrapper {
-        flex: 0 0 350px;
-        display: flex;
-        position: relative;
-        cursor: pointer;
-        transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-    
-    .top10-wrapper:hover {
-        transform: scale(1.05) translateY(-10px);
-        z-index: 30;
-    }
-    
-    .top10-number {
-        font-size: 16rem;
-        font-weight: 900;
-        color: transparent;
-        -webkit-text-stroke: 4px rgba(229, 9, 20, 0.5);
-        position: absolute;
-        left: -40px;
-        bottom: -70px;
-        z-index: 1;
-        line-height: 1;
-        transition: all 0.3s ease;
-    }
-    
-    .top10-wrapper:hover .top10-number {
-        -webkit-text-stroke-color: #e50914;
-        transform: scale(1.1);
-    }
-    
-    .top10-card {
-        flex: 1;
-        aspect-ratio: 2/3;
-        border-radius: 8px;
-        overflow: hidden;
-        position: relative;
-        z-index: 2;
-        margin-left: 60px;
-        box-shadow: 0 15px 30px rgba(0,0,0,0.5);
-    }
-    
-    .top10-card img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
+/* Enhanced Movie Cards - FIXED */
+.movie-card {
+    flex: 0 0 280px;
+    height: 158px; /* 16:9 ratio for 280px width */
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    border: 2px solid transparent;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+    background-color: #1a1a1a; /* Fallback color */
+}
+
+.movie-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block; /* Ensure image is displayed as block */
+}
+
+/* Card Overlay - FIXED */
+.card-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.4) 60%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 20px;
+    pointer-events: none; /* Allow clicks to pass through to the card */
+}
+
+.movie-card:hover .card-overlay {
+    opacity: 1;
+}
+
+/* Scroll Container - FIXED */
+.scroll-container {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 15px;
+    padding: 20px 0 40px 0;
+    margin-bottom: 20px;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+    min-height: 200px; /* Ensure container has height */
+}
+
+.scroll-container::-webkit-scrollbar {
+    display: none;
+}
+
+/* Ensure images load properly */
+.movie-card img[src=""], 
+.movie-card img:not([src]) {
+    opacity: 0;
+}
+
+/* Top 10 Cards - FIXED */
+.top10-wrapper {
+    flex: 0 0 300px;
+    display: flex;
+    position: relative;
+    cursor: pointer;
+    min-height: 200px;
+}
+
+.top10-card {
+    flex: 1;
+    aspect-ratio: 2/3;
+    width: 100%;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    z-index: 2;
+    margin-left: 60px;
+    box-shadow: 0 15px 30px rgba(0,0,0,0.5);
+    background-color: #1a1a1a;
+}
+
+.top10-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
     
     /* Badges */
     .badge-top10 {
@@ -457,12 +434,10 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- DEBUG VERSION OF RENDER MOVIE CARDS ---
+# --- RENDER MOVIE CARDS FUNCTION (UPDATED) ---
 def render_movie_cards(recommendations, score_column, is_top10_row=False, show_recent=False, show_top10_badge=False):
-    # Debug: Print number of recommendations
+    # Debug info
     st.caption(f"Found {len(recommendations)} recommendations")
-    
-    # Debug: Show first few titles
     if len(recommendations) > 0:
         st.caption(f"Sample: {', '.join(recommendations['title'].head(3).tolist())}")
     
@@ -473,9 +448,8 @@ def render_movie_cards(recommendations, score_column, is_top10_row=False, show_r
         try:
             poster_url, overview, movie_link = fetch_movie_details(row['title'])
             
-            # Skip if no poster (optional)
-            # if "No+Poster" in poster_url:
-            #     continue
+            # Add fallback image if poster fails to load
+            img_tag = f'<img src="{poster_url}" alt="{row["title"]}" onerror="this.src=\'https://via.placeholder.com/280x158?text={row["title"]}\'">'
                 
             score = row.get(score_column, 85)
             
@@ -487,14 +461,14 @@ def render_movie_cards(recommendations, score_column, is_top10_row=False, show_r
                 <div class="top10-wrapper" onclick="window.open('{movie_link}', '_blank')">
                     <div class="top10-number">{i+1}</div>
                     <div class="top10-card">
-                        <img src="{poster_url}" alt="{row['title']}" onerror="this.src='https://via.placeholder.com/300x450?text=No+Image'">
+                        {img_tag}
                         {recent_badge}
                     </div>
                 </div>"""
             else:
                 html_content += f"""
                 <div class="movie-card" onclick="window.open('{movie_link}', '_blank')">
-                    <img src="{poster_url}" alt="{row['title']}" onerror="this.src='https://via.placeholder.com/300x169?text=No+Image'">
+                    {img_tag}
                     {top10_badge}
                     {recent_badge}
                     <div class="card-overlay">
@@ -514,7 +488,6 @@ def render_movie_cards(recommendations, score_column, is_top10_row=False, show_r
         st.caption(f"Displayed {cards_added} movies")
     else:
         st.warning("No movies could be displayed")
-
 # --- SEARCH INPUT ---
 search_query = st.text_input("", placeholder="🔍 Search for movies, shows, genres...", label_visibility="collapsed")
 
