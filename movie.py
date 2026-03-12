@@ -93,6 +93,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- HELPER FUNCTION TO RENDER UI CARDS ---
+# --- HELPER FUNCTION TO RENDER UI CARDS ---
 def render_movie_cards(recommendations, score_column):
     html_content = '<div class="scroll-container">'
     
@@ -104,26 +105,24 @@ def render_movie_cards(recommendations, score_column):
         hours = int(score) % 2 + 1
         mins = int(score) % 60
         
-        html_content += f"""
-        <div class="z-card" onclick="window.open('{movie_link}', '_blank')">
-            <div class="img-wrapper">
-                <img src="{poster_url}" alt="{row['title']}">
-                <div class="img-overlay"></div>
-            </div>
-            <div class="card-content">
-                <div class="card-title">{row['title']}</div>
-                <div class="card-genre">Match Score: {score:.0f}%</div>
-                <div class="card-footer">
-                    <span>⏱ {hours} Hr {mins} Min</span>
-                    <span>♡</span>
-                </div>
-            </div>
-        </div>
-        """
+        # NOTE: The HTML below has no leading spaces so Streamlit doesn't treat it as a code block!
+        html_content += f"""<div class="z-card" onclick="window.open('{movie_link}', '_blank')">
+<div class="img-wrapper">
+<img src="{poster_url}" alt="{row['title']}">
+<div class="img-overlay"></div>
+</div>
+<div class="card-content">
+<div class="card-title">{row['title']}</div>
+<div class="card-genre">Match Score: {score:.0f}%</div>
+<div class="card-footer">
+<span>⏱ {hours} Hr {mins} Min</span>
+<span>♡</span>
+</div>
+</div>
+</div>"""
         
     html_content += '</div>'
     st.markdown(html_content, unsafe_allow_html=True)
-
 
 # --- MAIN LAYOUT (LEFT MENU + RIGHT CONTENT) ---
 menu_col, content_col = st.columns([1, 4], gap="large")
