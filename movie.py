@@ -7,7 +7,6 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 # --- TMDB API CONFIGURATION ---
-# REMINDER: Secure this with st.secrets before your presentation!
 API_KEY = "3eb39709869b67fd15b086e095c5cbec"
 
 # --- PAGE CONFIGURATION & CSS ---
@@ -220,7 +219,9 @@ def search_tmdb_topic(query):
 def get_content_based_recs(movie_title):
     idx = movies[movies['title'] == movie_title].index[0]
     sim_scores = list(enumerate(cosine_sim[idx]))
-    sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)[1:21]
+    
+    # 1. FIX: Start at [0:20] instead of [1:21] so the actual movie stays at the #1 spot!
+    sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)[0:20]
     
     recs = movies.iloc[[i[0] for i in sim_scores]].copy()
     recs['CB_Score'] = [i[1] * 100 for i in sim_scores]
@@ -234,7 +235,8 @@ def get_community_recs(movie_title):
     
     pattern = '|'.join(target_genres)
     pool = movies[movies['genres_clean'].str.contains(pattern, case=False, na=False)].copy()
-    pool = pool[pool['title'] != movie_title]
+    
+    # 2. FIX: Deleted the line that erased the searched movie! 
     
     pool['CF_Score'] = (pool['vote_average'] / 10) * 100
     return pool.sort_values(['vote_count', 'vote_average'], ascending=[False, False]).head(20)
