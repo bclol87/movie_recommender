@@ -457,40 +457,63 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- RENDER MOVIE CARDS FUNCTION ---
+# --- DEBUG VERSION OF RENDER MOVIE CARDS ---
 def render_movie_cards(recommendations, score_column, is_top10_row=False, show_recent=False, show_top10_badge=False):
+    # Debug: Print number of recommendations
+    st.caption(f"Found {len(recommendations)} recommendations")
+    
+    # Debug: Show first few titles
+    if len(recommendations) > 0:
+        st.caption(f"Sample: {', '.join(recommendations['title'].head(3).tolist())}")
+    
     html_content = '<div class="scroll-container">'
+    cards_added = 0
     
     for i, (_, row) in enumerate(recommendations.iterrows()):
-        poster_url, overview, movie_link = fetch_movie_details(row['title'])
-        score = row.get(score_column, 85)
-        
-        recent_badge = '<div class="badge-recent">✨ New</div>' if show_recent else ''
-        top10_badge = '<div class="badge-top10">TOP 10</div>' if show_top10_badge else ''
+        try:
+            poster_url, overview, movie_link = fetch_movie_details(row['title'])
+            
+            # Skip if no poster (optional)
+            # if "No+Poster" in poster_url:
+            #     continue
+                
+            score = row.get(score_column, 85)
+            
+            recent_badge = '<div class="badge-recent">✨ New</div>' if show_recent else ''
+            top10_badge = '<div class="badge-top10">TOP 10</div>' if show_top10_badge else ''
 
-        if is_top10_row:
-            html_content += f"""
-            <div class="top10-wrapper" onclick="window.open('{movie_link}', '_blank')">
-                <div class="top10-number">{i+1}</div>
-                <div class="top10-card">
-                    <img src="{poster_url}" alt="{row['title']}">
+            if is_top10_row:
+                html_content += f"""
+                <div class="top10-wrapper" onclick="window.open('{movie_link}', '_blank')">
+                    <div class="top10-number">{i+1}</div>
+                    <div class="top10-card">
+                        <img src="{poster_url}" alt="{row['title']}" onerror="this.src='https://via.placeholder.com/300x450?text=No+Image'">
+                        {recent_badge}
+                    </div>
+                </div>"""
+            else:
+                html_content += f"""
+                <div class="movie-card" onclick="window.open('{movie_link}', '_blank')">
+                    <img src="{poster_url}" alt="{row['title']}" onerror="this.src='https://via.placeholder.com/300x169?text=No+Image'">
+                    {top10_badge}
                     {recent_badge}
-                </div>
-            </div>"""
-        else:
-            html_content += f"""
-            <div class="movie-card" onclick="window.open('{movie_link}', '_blank')">
-                <img src="{poster_url}" alt="{row['title']}">
-                {top10_badge}
-                {recent_badge}
-                <div class="card-overlay">
-                    <div class="card-match">{score:.0f}% Match</div>
-                    <div class="card-title">{row['title']}</div>
-                </div>
-            </div>"""
-    
+                    <div class="card-overlay">
+                        <div class="card-match">{score:.0f}% Match</div>
+                        <div class="card-title">{row['title']}</div>
+                    </div>
+                </div>"""
+            cards_added += 1
+        except Exception as e:
+            st.caption(f"Error with {row['title']}: {str(e)}")
+            continue
+        
     html_content += '</div>'
-    st.markdown(html_content, unsafe_allow_html=True)
+    
+    if cards_added > 0:
+        st.markdown(html_content, unsafe_allow_html=True)
+        st.caption(f"Displayed {cards_added} movies")
+    else:
+        st.warning("No movies could be displayed")
 
 # --- SEARCH INPUT ---
 search_query = st.text_input("", placeholder="🔍 Search for movies, shows, genres...", label_visibility="collapsed")
