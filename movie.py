@@ -13,7 +13,7 @@ from movie_logic import (
 # --- PAGE CONFIGURATION ---
 st.set_page_config(page_title="CineMatch Pro", page_icon="🍿", layout="wide")
 
-# --- CSS STYLING (Fancy Cinematic Theme) ---
+# --- CSS STYLING (Ultra-Premium Cinematic Theme) ---
 st.markdown("""
 <style>
 /* 1. IMPORT GOOGLE FONTS */
@@ -32,29 +32,29 @@ st.markdown("""
     100% { opacity: 1; transform: translateY(0); } 
 }
 @keyframes floatPoster {
-    0% { transform: translateY(0px); box-shadow: 0 15px 30px rgba(0,0,0,0.8); }
-    50% { transform: translateY(-15px); box-shadow: 0 25px 45px rgba(229, 9, 20, 0.3); }
-    100% { transform: translateY(0px); box-shadow: 0 15px 30px rgba(0,0,0,0.8); }
+    0% { transform: translateY(0px); box-shadow: 0 15px 35px rgba(0,0,0,0.9); }
+    50% { transform: translateY(-15px); box-shadow: 0 25px 50px rgba(229, 9, 20, 0.2); }
+    100% { transform: translateY(0px); box-shadow: 0 15px 35px rgba(0,0,0,0.9); }
 }
 
 /* 3. ULTRA-PREMIUM MINIMALIST NAVBAR */
 .navbar { 
     display: flex; align-items: center; justify-content: space-between; padding: 25px 5%; 
-    background: linear-gradient(to bottom, rgba(5, 5, 5, 0.95) 0%, rgba(5, 5, 5, 0) 100%);
-    backdrop-filter: blur(8px); 
-    -webkit-backdrop-filter: blur(8px);
-    margin-bottom: -85px; position: relative; z-index: 50; 
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.4) 50%, rgba(0, 0, 0, 0) 100%);
+    margin-bottom: -100px; position: relative; z-index: 50; 
     animation: slideUpFade 0.8s ease-out;
+    pointer-events: none; /* Allows clicks to pass through empty space */
 }
 .logo { 
     color: #E50914; 
-    font-size: 36px; 
+    font-size: 38px; 
     font-weight: 900; 
     letter-spacing: 2px; 
     text-transform: uppercase;
-    text-shadow: 0px 0px 18px rgba(229, 9, 20, 0.7); 
+    text-shadow: 0px 0px 20px rgba(229, 9, 20, 0.6); 
     transition: transform 0.3s ease, text-shadow 0.3s ease;
     cursor: pointer;
+    pointer-events: auto;
 }
 .logo:hover {
     transform: scale(1.05);
@@ -63,9 +63,9 @@ st.markdown("""
 
 /* 4. DUAL-LAYER HERO SECTION */
 .hero-container { 
-    position: relative; width: 100%; height: 80vh; display: flex; align-items: center; justify-content: space-between;
+    position: relative; width: 100%; height: 85vh; display: flex; align-items: center; justify-content: space-between;
     margin-bottom: 30px; overflow: hidden; background-color: #0b0b0c;
-    border-bottom: 1px solid #222;
+    border-bottom: 1px solid #1a1a1a;
     animation: slideUpFade 1s ease-out;
 }
 
@@ -73,32 +73,32 @@ st.markdown("""
 .hero-bg-glow { 
     position: absolute; top: -10%; left: -10%; width: 120%; height: 120%; 
     background-size: cover; background-position: center; background-repeat: no-repeat;
-    filter: blur(40px) brightness(0.3); 
+    filter: blur(45px) brightness(0.35); 
     z-index: 0;
 }
 
 /* Layer 2: Left Side Text Content */
-.hero-content { position: relative; z-index: 2; padding-left: 5%; width: 55%; animation: slideUpFade 1.5s ease-out; }
-.hero-title { font-size: 4.5rem; font-weight: 900; margin-bottom: 10px; line-height: 1.1; text-transform: uppercase; text-shadow: 3px 3px 6px rgba(0,0,0,0.9); letter-spacing: -1px; }
-.hero-badge { background: linear-gradient(45deg, #E50914, #ff414d); color: white; padding: 6px 12px; border-radius: 4px; font-weight: 700; font-size: 0.9rem; margin-bottom: 20px; display: inline-block; box-shadow: 0 4px 10px rgba(229, 9, 20, 0.4); }
-.hero-desc { font-size: 1.25rem; color: #e5e5e5; text-shadow: 2px 2px 4px rgba(0,0,0,0.9); margin-bottom: 30px; font-weight: 400; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.hero-content { position: relative; z-index: 2; padding-left: 5%; width: 55%; margin-top: 40px; animation: slideUpFade 1.5s ease-out; }
+.hero-title { font-size: 4.8rem; font-weight: 900; margin-bottom: 10px; line-height: 1.1; text-transform: uppercase; text-shadow: 3px 3px 8px rgba(0,0,0,0.9); letter-spacing: -1px; }
+.hero-badge { background: linear-gradient(45deg, #E50914, #ff414d); color: white; padding: 6px 14px; border-radius: 4px; font-weight: 800; font-size: 0.9rem; margin-bottom: 25px; display: inline-block; box-shadow: 0 4px 10px rgba(229, 9, 20, 0.4); text-transform: uppercase; letter-spacing: 1px; }
+.hero-desc { font-size: 1.25rem; color: #e5e5e5; text-shadow: 2px 2px 5px rgba(0,0,0,0.9); margin-bottom: 35px; font-weight: 400; line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; max-width: 90%; }
 
 /* Buttons */
-.hero-buttons button { padding: 12px 28px; font-size: 1.2rem; font-weight: 700; border-radius: 8px; border: none; cursor: pointer; margin-right: 15px; transition: all 0.3s ease; }
+.hero-buttons button { padding: 14px 30px; font-size: 1.2rem; font-weight: 700; border-radius: 6px; border: none; cursor: pointer; margin-right: 15px; transition: all 0.3s ease; display: inline-flex; align-items: center; gap: 8px;}
 .btn-play { background-color: #ffffff; color: #000000; }
 .btn-play:hover { background-color: #E50914; color: white; transform: scale(1.05); }
-.btn-info { background-color: rgba(109, 109, 110, 0.6); color: white; backdrop-filter: blur(5px); }
-.btn-info:hover { background-color: rgba(255, 255, 255, 0.2); transform: scale(1.05); }
+.btn-info { background-color: rgba(109, 109, 110, 0.6); color: white; backdrop-filter: blur(8px); }
+.btn-info:hover { background-color: rgba(255, 255, 255, 0.25); transform: scale(1.05); }
 
-/* Layer 3: Right Side Clear Poster */
+/* Layer 3: Right Side Clear Poster - ADDED MARGIN TO PUSH DOWN FROM SEARCH BAR */
 .hero-poster-box {
     position: relative; z-index: 2; width: 45%; display: flex; justify-content: center; align-items: center;
-    padding-right: 5%; animation: slideUpFade 1.2s ease-out;
+    padding-right: 5%; margin-top: 60px; animation: slideUpFade 1.2s ease-out;
 }
 .hero-poster-box img {
-    height: 65vh; 
+    height: 55vh; /* Reduced height so it fits beautifully without hitting the top */
     border-radius: 12px;
-    border: 1px solid rgba(255,255,255,0.2);
+    border: 1px solid rgba(255,255,255,0.15);
     animation: floatPoster 6s ease-in-out infinite; 
 }
 
@@ -110,8 +110,8 @@ st.markdown("""
     scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
 }
-.scroll-container::-webkit-scrollbar { height: 10px; background: rgba(255,255,255,0.05); border-radius: 10px;} 
-.scroll-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 10px;}
+.scroll-container::-webkit-scrollbar { height: 8px; background: rgba(255,255,255,0.02); border-radius: 10px;} 
+.scroll-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px;}
 .scroll-container::-webkit-scrollbar-thumb:hover { background: #E50914; }
 
 /* 6. NEON GLOW HOVER EFFECTS ON CARDS */
@@ -128,24 +128,23 @@ st.markdown("""
 .top10-card:hover img { transform: scale(1.1) rotate(2deg); border: 2px solid #E50914; box-shadow: 0 15px 35px rgba(229, 9, 20, 0.6); }
 .top10-card:hover .top10-number { color: rgba(229,9,20,0.1); -webkit-text-stroke: 4px #E50914; transform: scale(1.05) translateX(-10px); text-shadow: 0 0 20px rgba(229,9,20,0.4); }
 
-/* 8. GLOWING GLASSMORPHISM SEARCH BAR */
-.stTextInput { position: absolute; top: 25px; right: 5%; width: 320px !important; z-index: 100 !important; }
+/* 8. SLEEK CINEMATIC SEARCH BAR (NETFLIX STYLE) */
+.stTextInput { position: absolute; top: 15px; right: 5%; width: 280px !important; z-index: 100 !important; pointer-events: auto;}
 .stTextInput input { 
     color: white !important; 
-    background-color: rgba(255, 255, 255, 0.1) !important; 
-    backdrop-filter: blur(10px) !important;
-    border: 1px solid rgba(255,255,255,0.2) !important; 
-    border-radius: 30px !important; 
-    padding: 12px 25px !important; 
+    background-color: rgba(0, 0, 0, 0.6) !important; /* Dark, sleek background */
+    border: 1px solid rgba(255, 255, 255, 0.2) !important; /* Subtle, classy outline */
+    border-radius: 6px !important; /* Authentic streaming app square-round edges */
+    padding: 12px 20px !important; 
     font-size: 15px !important; 
-    transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1) !important; 
+    transition: all 0.3s ease !important; 
 }
-.stTextInput input::placeholder { color: rgba(255,255,255,0.6) !important; }
+.stTextInput input::placeholder { color: rgba(255,255,255,0.4) !important; font-weight: 300 !important; }
 .stTextInput input:focus { 
-    box-shadow: 0 0 20px rgba(229, 9, 20, 0.6) !important; 
-    border-color: #E50914 !important; 
-    background-color: rgba(10, 10, 10, 0.9) !important; 
-    width: 380px !important; 
+    background-color: rgba(0, 0, 0, 0.9) !important; 
+    border-color: #E50914 !important; /* Sharp Netflix red border on click */
+    box-shadow: none !important; /* Removed messy outer glow for a cleaner look */
+    width: 320px !important; 
 }
 </style>
 """, unsafe_allow_html=True)
@@ -179,7 +178,7 @@ components.html(
     height=0, width=0
 )
 
-# --- NAVIGATION BAR (Clean, Minimalist Version) ---
+# --- NAVIGATION BAR (Super Clean & Minimalist) ---
 st.markdown("""
 <div class="navbar">
 <div class="logo">CineMatch</div>
@@ -221,12 +220,13 @@ if search_query:
             selected_movie = movies.iloc[best_match_idx]['title']
             hero_poster, hero_overview, hero_link = fetch_movie_details(selected_movie)
             
+            # COMPLETELY FLATTENED HTML to prevent Streamlit code blocks
             st.markdown(f"""
 <div class="hero-container">
 <div class="hero-bg-glow" style="background-image: url('{hero_poster}');"></div>
 <div class="hero-content">
 <div class="hero-title">{selected_movie}</div>
-<div class="hero-badge">📺 #1 Trending Worldwide</div>
+<div class="hero-badge">#1 Trending Worldwide</div>
 <div class="hero-desc">{hero_overview}</div>
 <div class="hero-buttons">
 <a href="{hero_link}" target="_blank" style="text-decoration:none;">
@@ -262,10 +262,11 @@ if search_query:
                 st.error("No movies found for that search.")
 
 else:
+    # COMPLETELY FLATTENED HTML to prevent Streamlit code blocks
     st.markdown("""
 <div class="hero-container">
 <div class="hero-bg-glow" style="background-image: url('https://assets.nflxext.com/ffe/siteui/vlv3/1ecf18b2-adad-4684-bd9a-acab7f2a875f/728df0cc-b789-4bba-9ea7-626a5c2d36ab/MY-en-20230116-popsignuptwoweeks-perspective_alpha_website_medium.jpg'); opacity: 0.5;"></div>
-<div class="hero-content" style="width: 100%; text-align: center; padding: 0;">
+<div class="hero-content" style="width: 100%; text-align: center; padding: 0; margin-top: 0;">
 <div class="hero-title" style="font-size: 3.5rem; text-shadow: 2px 4px 10px rgba(0,0,0,0.8);">FIND YOUR NEXT OBSESSION</div>
 <div class="hero-desc" style="color:#ddd; font-size: 1.4rem;">Type a movie title or mood in the top right to unleash the recommendation engine.</div>
 </div>
