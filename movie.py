@@ -53,28 +53,28 @@ st.markdown("""
     .movie-card:hover { transform: scale(1.05); z-index: 10; }
     .movie-card img { 
         width: 100%; 
-        aspect-ratio: 2 / 3; /* Forces a perfect poster ratio */
-        object-fit: cover;   /* Prevents stretching/squishing */
+        aspect-ratio: 2 / 3; 
+        object-fit: cover;   
         border-radius: 4px; 
         box-shadow: 0 4px 8px rgba(0,0,0,0.5); 
     }
     
-    /* Top 10 Specific Cards - FIXED IMAGE SIZES */
-    .top10-card { flex: 0 0 220px; display: flex; align-items: center; position: relative; padding-left: 30px; }
-    .top10-number { font-size: 180px; font-weight: 900; color: #000; -webkit-text-stroke: 4px #555; position: absolute; left: -20px; bottom: -35px; z-index: 1; letter-spacing: -15px; }
+    /* --- UPDATED: Top 10 Cards are now significantly bigger! --- */
+    .top10-card { flex: 0 0 320px; display: flex; align-items: center; position: relative; padding-left: 30px; }
+    .top10-number { font-size: 260px; font-weight: 900; color: #000; -webkit-text-stroke: 4px #555; position: absolute; left: -20px; bottom: -50px; z-index: 1; letter-spacing: -15px; }
     .top10-card img { 
-        width: 130px; 
-        aspect-ratio: 2 / 3; /* Forces a perfect poster ratio */
-        object-fit: cover;   /* Prevents stretching/squishing */
+        width: 200px; 
+        aspect-ratio: 2 / 3; 
+        object-fit: cover;   
         border-radius: 4px; 
         z-index: 2; 
-        margin-left: 40px; 
-        box-shadow: 0 4px 8px rgba(0,0,0,0.5); 
+        margin-left: 60px; 
+        box-shadow: 0 6px 12px rgba(0,0,0,0.8); 
         transition: transform 0.3s; 
     }
     .top10-card:hover img { transform: scale(1.05); }
 
-    /* Fix: Forcing black text on inputs and raising z-index so the invisible navbar doesn't block clicks */
+    /* Fix: Forcing black text on inputs and raising z-index */
     .stTextInput { position: relative; z-index: 100 !important; }
     .stTextInput input { color: white !important; background-color: rgba(0,0,0,0.5) !important; border: 1px solid #555 !important; }
     </style>
@@ -103,7 +103,6 @@ def render_movie_cards(recommendations, score_column, is_top_10=False):
         score = row.get(score_column, 85) 
         title_safe = str(row['title']).replace('"', '&quot;')
         
-        # FIX: Single line HTML strings to prevent Streamlit from turning them into Markdown code blocks
         if is_top_10:
             rank = i + 1
             html_content += f'<div class="top10-card"><div class="top10-number">{rank}</div><a href="{movie_link}" target="_blank"><img src="{poster_url}" alt="{title_safe}"></a></div>'
@@ -114,7 +113,6 @@ def render_movie_cards(recommendations, score_column, is_top_10=False):
     st.markdown(html_content, unsafe_allow_html=True)
 
 # --- SEARCH BAR ---
-# Placed slightly below the navbar using columns to right-align it
 col1, col2, col3 = st.columns([6, 3, 1])
 with col2:
     search_query = st.text_input("", placeholder="🔍 Titles, people, genres...", label_visibility="collapsed")
@@ -122,21 +120,16 @@ with col2:
 # --- RESULTS SECTION ---
 if search_query:
     with st.spinner('Curating...'):
-        # 1. UNIVERSAL SEARCH (NLP)
         query_vec = tfidf.transform([search_query])
         sim_scores = cosine_similarity(query_vec, tfidf_matrix).flatten()
         
         best_match_idx = sim_scores.argmax()
         best_score = sim_scores[best_match_idx]
         
-        # 2. DECISION LOGIC: Known Movie or Topic?
         if best_score > 0:
             selected_movie = movies.iloc[best_match_idx]['title']
-            
-            # Fetch details for the HERO BANNER
             hero_poster, hero_overview, hero_link = fetch_movie_details(selected_movie)
             
-            # --- RENDER HERO BANNER ---
             st.markdown(f"""
                 <div class="hero-container">
                     <img src="{hero_poster}" class="hero-bg">
@@ -152,20 +145,15 @@ if search_query:
                 </div>
             """, unsafe_allow_html=True)
             
-            # --- RENDER ROWS ---
-            # Row 1: Top 10 in Area (Community Picks)
             st.markdown('<div class="category-header">Top 10 Movies in Malaysia Today</div>', unsafe_allow_html=True)
             render_movie_cards(get_community_recs(selected_movie).head(10), 'CF_Score', is_top_10=True)
 
-            # Row 2: AI Similar (Content-Based) -> Styled as "New on Netflix" or "More Like This"
             st.markdown(f'<div class="category-header">Because you searched for {selected_movie}</div>', unsafe_allow_html=True)
             render_movie_cards(get_content_based_recs(selected_movie), 'CB_Score')
 
-            # Row 3: We Think You'll Love These (Hybrid Picks)
             st.markdown('<div class="category-header">We Think You\'ll Love These</div>', unsafe_allow_html=True)
             render_movie_cards(get_hybrid_recs(selected_movie), 'Hybrid_Score')
 
-        # 3. GLOBAL FALLBACK: Search TMDB topic if no local match
         else:
             st.warning(f"Searching global TMDB library for topic: '{search_query}'")
             topic_results = search_tmdb_topic(search_query)
@@ -177,9 +165,7 @@ if search_query:
             else:
                 st.error("No movies found for that search.")
 
-# Default Dashboard View (when no search is entered)
 else:
-    # Just a placeholder aesthetic banner to make it look like the image initially
     st.markdown("""
         <div class="hero-container" style="background: linear-gradient(45deg, #111, #333);">
             <div class="hero-content">
