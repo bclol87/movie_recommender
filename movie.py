@@ -49,7 +49,7 @@ st.markdown("""
     .scroll-container::-webkit-scrollbar { height: 0px; background: transparent; } /* Hide scrollbar for cleaner look */
     
     /* Standard Movie Cards */
-    .movie-card { flex: 0 0 220px; position: relative; transition: transform 0.3s ease, z-index 0.3s ease; cursor: pointer; }
+    .movie-card { flex: 0 0 320px; position: relative; transition: transform 0.3s ease, z-index 0.3s ease; cursor: pointer; }
     .movie-card:hover { transform: scale(1.05); z-index: 10; }
     .movie-card img { width: 100%; border-radius: 4px; box-shadow: 0 4px 8px rgba(0,0,0,0.5); }
     
