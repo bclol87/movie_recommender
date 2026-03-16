@@ -21,7 +21,7 @@ st.markdown("""
     /* Hide Streamlit default headers and footers */
     #MainMenu {visibility: hidden;} footer {visibility: hidden;} header {visibility: hidden;}
     
-    /* --- NEW FIX: Remove Streamlit's default top padding to push the header up --- */
+    /* Remove Streamlit's default top padding to push the header up */
     .block-container { padding-top: 0rem !important; }
     
     /* Top Navigation Bar */
@@ -31,9 +31,25 @@ st.markdown("""
     .nav-links span { cursor: pointer; transition: color 0.3s; }
     .nav-links span:hover { color: #ffffff; font-weight: bold; }
     
-    /* Hero Banner Section */
-    .hero-container { position: relative; width: 100%; height: 65vh; display: flex; align-items: center; margin-bottom: 20px; overflow: hidden; border-radius: 10px;}
-    .hero-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.4; filter: blur(3px); mask-image: linear-gradient(to top, rgba(20,20,20,1), rgba(20,20,20,0)); -webkit-mask-image: linear-gradient(to top, transparent, black); }
+    /* --- UPDATED: Hero Banner Section is now taller (75vh) and has a black base --- */
+    .hero-container { position: relative; width: 100%; height: 75vh; display: flex; align-items: center; margin-bottom: 20px; overflow: hidden; border-radius: 10px; background-color: #000000;}
+    
+    /* --- UPDATED: Hero Image is now CLEAR (no blur), BRIGHTER, and positioned perfectly --- */
+    .hero-bg { 
+        position: absolute; 
+        top: 0; 
+        left: 0; 
+        width: 100%; 
+        height: 100%; 
+        object-fit: cover; 
+        object-position: center 20%; /* Focuses on the top-middle of the image */
+        opacity: 0.65; /* Brightened up */
+        /* Removed filter: blur! */
+        /* Fades the bottom to black so it blends into the rest of the app smoothly */
+        -webkit-mask-image: linear-gradient(to top, transparent 5%, black 40%); 
+        mask-image: linear-gradient(to top, transparent 5%, black 40%);
+    }
+    
     .hero-content { position: relative; z-index: 2; padding: 0 4%; max-width: 60%; }
     .hero-title { font-size: 4rem; font-weight: 900; margin-bottom: 10px; line-height: 1.1; text-transform: uppercase; text-shadow: 2px 2px 4px rgba(0,0,0,0.8); }
     .hero-badge { background-color: #E50914; color: white; padding: 4px 8px; border-radius: 3px; font-weight: bold; font-size: 0.9rem; margin-bottom: 15px; display: inline-block; }
