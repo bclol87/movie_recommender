@@ -31,20 +31,21 @@ st.markdown("""
     .nav-links span { cursor: pointer; transition: color 0.3s; }
     .nav-links span:hover { color: #ffffff; font-weight: bold; }
     
-    /* Hero Banner Section */
+    /* --- UPDATED: Hero Banner Section is now taller (75vh) and has a black base --- */
     .hero-container { position: relative; width: 100%; height: 75vh; display: flex; align-items: center; margin-bottom: 20px; overflow: hidden; border-radius: 10px; background-color: #000000;}
     
-    /* --- NEW FIX: Using a background div instead of an img tag to force edge-to-edge coverage --- */
+    /* --- UPDATED: Hero Image is now CLEAR (no blur), BRIGHTER, and positioned perfectly --- */
     .hero-bg { 
         position: absolute; 
         top: 0; 
         left: 0; 
         width: 100%; 
         height: 100%; 
-        background-size: cover; 
-        background-position: center 20%; 
-        background-repeat: no-repeat;
-        opacity: 0.65; 
+        object-fit: cover; 
+        object-position: center 20%; /* Focuses on the top-middle of the image */
+        opacity: 0.65; /* Brightened up */
+        /* Removed filter: blur! */
+        /* Fades the bottom to black so it blends into the rest of the app smoothly */
         -webkit-mask-image: linear-gradient(to top, transparent 5%, black 40%); 
         mask-image: linear-gradient(to top, transparent 5%, black 40%);
     }
@@ -148,10 +149,9 @@ if search_query:
             selected_movie = movies.iloc[best_match_idx]['title']
             hero_poster, hero_overview, hero_link = fetch_movie_details(selected_movie)
             
-            # --- FIX: Replaced <img class="hero-bg"> with <div class="hero-bg" style="background-image: ...">
             st.markdown(f"""
                 <div class="hero-container">
-                    <div class="hero-bg" style="background-image: url('{hero_poster}');"></div>
+                    <img src="{hero_poster}" class="hero-bg">
                     <div class="hero-content">
                         <div class="hero-title">{selected_movie}</div>
                         <div class="hero-badge">📺 #1 in Movies Today</div>
