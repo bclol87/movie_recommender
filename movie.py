@@ -126,7 +126,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- MAGIC JAVASCRIPT INJECTION: Converts vertical mouse wheel to horizontal scroll ---
+# --- MAGIC JAVASCRIPT INJECTION: Target ONLY the Top 10 Row ---
 components.html(
     """
     <script>
@@ -136,16 +136,15 @@ components.html(
         script.id = 'h-scroll-script';
         script.innerHTML = `
             document.addEventListener('wheel', function(e) {
-                const container = e.target.closest('.scroll-container');
+                // CHANGED: Now it only looks for the special class '.top10-scroll-row'
+                const container = e.target.closest('.top10-scroll-row');
                 if (container) {
-                    // Check if we are at the far left or far right edge
                     const atLeft = container.scrollLeft === 0 && e.deltaY < 0;
                     const atRight = container.scrollLeft >= (container.scrollWidth - container.clientWidth - 2) && e.deltaY > 0;
                     
-                    // If we are NOT at the edges, translate vertical wheel to horizontal scroll
                     if (!atLeft && !atRight && e.deltaY !== 0) {
                         e.preventDefault();
-                        container.scrollLeft += e.deltaY * 2.5; // 2.5 is the scroll speed multiplier
+                        container.scrollLeft += e.deltaY * 2.5; 
                     }
                 }
             }, { passive: false });
@@ -176,7 +175,9 @@ search_query = st.text_input("", placeholder="🔍 Search titles, characters, ge
 
 # --- HELPER FUNCTION TO RENDER UI CARDS ---
 def render_movie_cards(recommendations, score_column, is_top_10=False):
-    html_content = '<div class="scroll-container">'
+    # CHANGED: If it's the Top 10, add the 'top10-scroll-row' class so the JS can find it
+    container_class = "scroll-container top10-scroll-row" if is_top_10 else "scroll-container"
+    html_content = f'<div class="{container_class}">'
     
     for i, (_, row) in enumerate(recommendations.iterrows()):
         poster_url, overview, movie_link = fetch_movie_details(row['title'])
