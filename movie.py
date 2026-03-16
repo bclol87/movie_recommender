@@ -48,15 +48,30 @@ st.markdown("""
     .scroll-container { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 15px; padding: 10px 4% 40px 4%; scroll-behavior: smooth; }
     .scroll-container::-webkit-scrollbar { height: 0px; background: transparent; } /* Hide scrollbar for cleaner look */
     
-    /* Standard Movie Cards */
+    /* Standard Movie Cards - FIXED IMAGE SIZES */
     .movie-card { flex: 0 0 250px; position: relative; transition: transform 0.3s ease, z-index 0.3s ease; cursor: pointer; }
     .movie-card:hover { transform: scale(1.05); z-index: 10; }
-    .movie-card img { width: 100%; border-radius: 4px; box-shadow: 0 4px 8px rgba(0,0,0,0.5); }
+    .movie-card img { 
+        width: 100%; 
+        aspect-ratio: 2 / 3; /* Forces a perfect poster ratio */
+        object-fit: cover;   /* Prevents stretching/squishing */
+        border-radius: 4px; 
+        box-shadow: 0 4px 8px rgba(0,0,0,0.5); 
+    }
     
-    /* Top 10 Specific Cards */
+    /* Top 10 Specific Cards - FIXED IMAGE SIZES */
     .top10-card { flex: 0 0 220px; display: flex; align-items: center; position: relative; padding-left: 30px; }
     .top10-number { font-size: 180px; font-weight: 900; color: #000; -webkit-text-stroke: 4px #555; position: absolute; left: -20px; bottom: -35px; z-index: 1; letter-spacing: -15px; }
-    .top10-card img { width: 130px; border-radius: 4px; z-index: 2; margin-left: 40px; box-shadow: 0 4px 8px rgba(0,0,0,0.5); transition: transform 0.3s; }
+    .top10-card img { 
+        width: 130px; 
+        aspect-ratio: 2 / 3; /* Forces a perfect poster ratio */
+        object-fit: cover;   /* Prevents stretching/squishing */
+        border-radius: 4px; 
+        z-index: 2; 
+        margin-left: 40px; 
+        box-shadow: 0 4px 8px rgba(0,0,0,0.5); 
+        transition: transform 0.3s; 
+    }
     .top10-card:hover img { transform: scale(1.05); }
 
     /* Fix: Forcing black text on inputs and raising z-index so the invisible navbar doesn't block clicks */
