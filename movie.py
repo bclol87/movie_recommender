@@ -59,7 +59,8 @@ st.markdown("""
     .top10-card img { width: 130px; border-radius: 4px; z-index: 2; margin-left: 40px; box-shadow: 0 4px 8px rgba(0,0,0,0.5); transition: transform 0.3s; }
     .top10-card:hover img { transform: scale(1.05); }
 
-    /* Forcing black text on inputs for readability */
+    /* Fix: Forcing black text on inputs and raising z-index so the invisible navbar doesn't block clicks */
+    .stTextInput { position: relative; z-index: 100 !important; }
     .stTextInput input { color: white !important; background-color: rgba(0,0,0,0.5) !important; border: 1px solid #555 !important; }
     </style>
 """, unsafe_allow_html=True)
