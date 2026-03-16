@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 from sklearn.metrics.pairwise import cosine_similarity
 import pandas as pd
 
@@ -97,20 +98,21 @@ st.markdown("""
 .scroll-container { 
     display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 20px; 
     padding: 15px 4% 50px 4%; scroll-behavior: smooth; animation: slideUpFade 1.2s ease-out both; 
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
 }
-/* --- NEW FIX: Styled horizontal scrollbar --- */
 .scroll-container::-webkit-scrollbar { height: 10px; background: rgba(255,255,255,0.05); border-radius: 10px;} 
 .scroll-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 10px;}
 .scroll-container::-webkit-scrollbar-thumb:hover { background: #E50914; }
 
 /* 6. NEON GLOW HOVER EFFECTS ON CARDS */
-.movie-card { flex: 0 0 240px; position: relative; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: pointer; border-radius: 8px; }
+.movie-card { flex: 0 0 240px; position: relative; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: pointer; border-radius: 8px; scroll-snap-align: start; scroll-margin-left: 4%;}
 .movie-card img { width: 100%; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 8px; box-shadow: 0 6px 12px rgba(0,0,0,0.6); transition: all 0.4s ease; border: 2px solid transparent; }
 .movie-card:hover { transform: scale(1.08) translateY(-10px); z-index: 10; }
 .movie-card:hover img { border: 2px solid #E50914; box-shadow: 0 15px 30px rgba(229, 9, 20, 0.5); }
 
 /* 7. INTERACTIVE TOP 10 CARDS */
-.top10-card { flex: 0 0 320px; display: flex; align-items: center; position: relative; padding-left: 30px; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: pointer; }
+.top10-card { flex: 0 0 320px; display: flex; align-items: center; position: relative; padding-left: 30px; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: pointer; scroll-snap-align: start; scroll-margin-left: 4%;}
 .top10-number { font-size: 280px; font-weight: 900; color: #0b0b0c; -webkit-text-stroke: 4px #444; position: absolute; left: -20px; bottom: -50px; z-index: 1; letter-spacing: -15px; transition: all 0.5s ease; text-shadow: 5px 5px 10px rgba(0,0,0,0.8); }
 .top10-card img { width: 200px; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 8px; z-index: 2; margin-left: 70px; box-shadow: 0 8px 16px rgba(0,0,0,0.8); transition: all 0.4s ease; border: 2px solid transparent; }
 .top10-card:hover { transform: translateY(-10px); z-index: 10; }
@@ -123,6 +125,37 @@ st.markdown("""
 .stTextInput input:focus { box-shadow: 0 0 15px rgba(229, 9, 20, 0.6) !important; border-color: #E50914 !important; background-color: rgba(0,0,0,0.8) !important; width: 350px !important;}
 </style>
 """, unsafe_allow_html=True)
+
+# --- MAGIC JAVASCRIPT INJECTION: Converts vertical mouse wheel to horizontal scroll ---
+components.html(
+    """
+    <script>
+    const doc = window.parent.document;
+    if (!doc.getElementById('h-scroll-script')) {
+        const script = doc.createElement('script');
+        script.id = 'h-scroll-script';
+        script.innerHTML = `
+            document.addEventListener('wheel', function(e) {
+                const container = e.target.closest('.scroll-container');
+                if (container) {
+                    // Check if we are at the far left or far right edge
+                    const atLeft = container.scrollLeft === 0 && e.deltaY < 0;
+                    const atRight = container.scrollLeft >= (container.scrollWidth - container.clientWidth - 2) && e.deltaY > 0;
+                    
+                    // If we are NOT at the edges, translate vertical wheel to horizontal scroll
+                    if (!atLeft && !atRight && e.deltaY !== 0) {
+                        e.preventDefault();
+                        container.scrollLeft += e.deltaY * 2.5; // 2.5 is the scroll speed multiplier
+                    }
+                }
+            }, { passive: false });
+        `;
+        doc.head.appendChild(script);
+    }
+    </script>
+    """,
+    height=0, width=0
+)
 
 # --- NAVIGATION BAR (Visual only) ---
 st.markdown("""
@@ -172,7 +205,6 @@ if search_query:
             selected_movie = movies.iloc[best_match_idx]['title']
             hero_poster, hero_overview, hero_link = fetch_movie_details(selected_movie)
             
-            # COMPLETELY FLATTENED HTML to prevent Streamlit code blocks
             st.markdown(f"""
 <div class="hero-container">
 <div class="hero-bg-glow" style="background-image: url('{hero_poster}');"></div>
@@ -214,7 +246,6 @@ if search_query:
                 st.error("No movies found for that search.")
 
 else:
-    # COMPLETELY FLATTENED HTML to prevent Streamlit code blocks
     st.markdown("""
 <div class="hero-container">
 <div class="hero-bg-glow" style="background-image: url('https://assets.nflxext.com/ffe/siteui/vlv3/1ecf18b2-adad-4684-bd9a-acab7f2a875f/728df0cc-b789-4bba-9ea7-626a5c2d36ab/MY-en-20230116-popsignuptwoweeks-perspective_alpha_website_medium.jpg'); opacity: 0.5;"></div>
