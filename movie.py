@@ -86,27 +86,14 @@ def render_movie_cards(recommendations, score_column, is_top_10=False):
     for i, (_, row) in enumerate(recommendations.iterrows()):
         poster_url, overview, movie_link = fetch_movie_details(row['title'])
         score = row.get(score_column, 85) 
+        title_safe = str(row['title']).replace('"', '&quot;')
         
-        # If rendering the Top 10 list, add the giant background numbers
+        # FIX: Single line HTML strings to prevent Streamlit from turning them into Markdown code blocks
         if is_top_10:
             rank = i + 1
-            html_content += f"""
-            <div class="top10-card">
-                <div class="top10-number">{rank}</div>
-                <a href="{movie_link}" target="_blank">
-                    <img src="{poster_url}" alt="{row['title']}">
-                </a>
-            </div>
-            """
-        # Standard Netflix-style cards (Image only, details on click/hover visually implied)
+            html_content += f'<div class="top10-card"><div class="top10-number">{rank}</div><a href="{movie_link}" target="_blank"><img src="{poster_url}" alt="{title_safe}"></a></div>'
         else:
-            html_content += f"""
-            <div class="movie-card" title="{row['title']} - {score:.0f}% Match">
-                <a href="{movie_link}" target="_blank">
-                    <img src="{poster_url}" alt="{row['title']}">
-                </a>
-            </div>
-            """
+            html_content += f'<div class="movie-card" title="{title_safe} - {score:.0f}% Match"><a href="{movie_link}" target="_blank"><img src="{poster_url}" alt="{title_safe}"></a></div>'
             
     html_content += '</div>'
     st.markdown(html_content, unsafe_allow_html=True)
