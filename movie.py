@@ -39,8 +39,8 @@ st.markdown("""
 /* 3. GLASSMORPHISM NAVBAR */
 .navbar { 
     display: flex; align-items: center; padding: 20px 4%; 
-    background: rgba(11, 11, 12, 0.8); /* Semi-transparent */
-    backdrop-filter: blur(12px); /* Frosted glass blur */
+    background: rgba(11, 11, 12, 0.8);
+    backdrop-filter: blur(12px); 
     -webkit-backdrop-filter: blur(12px);
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     margin-bottom: -70px; position: relative; z-index: 50; 
@@ -51,7 +51,7 @@ st.markdown("""
 .nav-links span { cursor: pointer; transition: all 0.3s ease; }
 .nav-links span:hover { color: #ffffff; text-shadow: 0px 0px 8px rgba(255,255,255,0.6); transform: translateY(-2px); }
 
-/* 4. DUAL-LAYER HERO SECTION (Fixes cropped image) */
+/* 4. DUAL-LAYER HERO SECTION */
 .hero-container { 
     position: relative; width: 100%; height: 80vh; display: flex; align-items: center; justify-content: space-between;
     margin-bottom: 30px; overflow: hidden; background-color: #0b0b0c;
@@ -86,10 +86,10 @@ st.markdown("""
     padding-right: 5%; animation: slideUpFade 1.2s ease-out;
 }
 .hero-poster-box img {
-    height: 65vh; /* Prevents it from being too tall */
+    height: 65vh; 
     border-radius: 12px;
     border: 1px solid rgba(255,255,255,0.2);
-    animation: floatPoster 6s ease-in-out infinite; /* Floating animation */
+    animation: floatPoster 6s ease-in-out infinite; 
 }
 
 /* 5. CATEGORIES & ROWS ANIMATION */
@@ -100,7 +100,6 @@ st.markdown("""
 /* 6. NEON GLOW HOVER EFFECTS ON CARDS */
 .movie-card { flex: 0 0 240px; position: relative; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: pointer; border-radius: 8px; }
 .movie-card img { width: 100%; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 8px; box-shadow: 0 6px 12px rgba(0,0,0,0.6); transition: all 0.4s ease; border: 2px solid transparent; }
-
 .movie-card:hover { transform: scale(1.08) translateY(-10px); z-index: 10; }
 .movie-card:hover img { border: 2px solid #E50914; box-shadow: 0 15px 30px rgba(229, 9, 20, 0.5); }
 
@@ -108,7 +107,6 @@ st.markdown("""
 .top10-card { flex: 0 0 320px; display: flex; align-items: center; position: relative; padding-left: 30px; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: pointer; }
 .top10-number { font-size: 280px; font-weight: 900; color: #0b0b0c; -webkit-text-stroke: 4px #444; position: absolute; left: -20px; bottom: -50px; z-index: 1; letter-spacing: -15px; transition: all 0.5s ease; text-shadow: 5px 5px 10px rgba(0,0,0,0.8); }
 .top10-card img { width: 200px; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 8px; z-index: 2; margin-left: 70px; box-shadow: 0 8px 16px rgba(0,0,0,0.8); transition: all 0.4s ease; border: 2px solid transparent; }
-
 .top10-card:hover { transform: translateY(-10px); z-index: 10; }
 .top10-card:hover img { transform: scale(1.1) rotate(2deg); border: 2px solid #E50914; box-shadow: 0 15px 35px rgba(229, 9, 20, 0.6); }
 .top10-card:hover .top10-number { color: rgba(229,9,20,0.1); -webkit-text-stroke: 4px #E50914; transform: scale(1.05) translateX(-10px); text-shadow: 0 0 20px rgba(229,9,20,0.4); }
@@ -123,14 +121,14 @@ st.markdown("""
 # --- NAVIGATION BAR (Visual only) ---
 st.markdown("""
 <div class="navbar">
-    <div class="logo">CineMatch</div>
-    <div class="nav-links">
-        <span>Home</span>
-        <span>Shows</span>
-        <span>Movies</span>
-        <span>New & Popular</span>
-        <span>My List</span>
-    </div>
+<div class="logo">CineMatch</div>
+<div class="nav-links">
+<span>Home</span>
+<span>Shows</span>
+<span>Movies</span>
+<span>New & Popular</span>
+<span>My List</span>
+</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -168,28 +166,26 @@ if search_query:
             selected_movie = movies.iloc[best_match_idx]['title']
             hero_poster, hero_overview, hero_link = fetch_movie_details(selected_movie)
             
-            # Un-indented HTML to prevent grey box
+            # COMPLETELY FLATTENED HTML to prevent Streamlit code blocks
             st.markdown(f"""
 <div class="hero-container">
-    <div class="hero-bg-glow" style="background-image: url('{hero_poster}');"></div>
-    
-    <div class="hero-content">
-        <div class="hero-title">{selected_movie}</div>
-        <div class="hero-badge">📺 #1 Trending Worldwide</div>
-        <div class="hero-desc">{hero_overview}</div>
-        <div class="hero-buttons">
-            <a href="{hero_link}" target="_blank" style="text-decoration:none;">
-                <button class="btn-play">▶ Play</button>
-            </a>
-            <button class="btn-info">ⓘ More Info</button>
-        </div>
-    </div>
-    
-    <div class="hero-poster-box">
-        <img src="{hero_poster}" alt="{selected_movie}">
-    </div>
+<div class="hero-bg-glow" style="background-image: url('{hero_poster}');"></div>
+<div class="hero-content">
+<div class="hero-title">{selected_movie}</div>
+<div class="hero-badge">📺 #1 Trending Worldwide</div>
+<div class="hero-desc">{hero_overview}</div>
+<div class="hero-buttons">
+<a href="{hero_link}" target="_blank" style="text-decoration:none;">
+<button class="btn-play">▶ Play</button>
+</a>
+<button class="btn-info">ⓘ More Info</button>
 </div>
-            """, unsafe_allow_html=True)
+</div>
+<div class="hero-poster-box">
+<img src="{hero_poster}" alt="{selected_movie}">
+</div>
+</div>
+""", unsafe_allow_html=True)
             
             st.markdown('<div class="category-header">Top 10 Movies in Your Area Today</div>', unsafe_allow_html=True)
             render_movie_cards(get_community_recs(selected_movie).head(10), 'CF_Score', is_top_10=True)
@@ -212,12 +208,13 @@ if search_query:
                 st.error("No movies found for that search.")
 
 else:
+    # COMPLETELY FLATTENED HTML to prevent Streamlit code blocks
     st.markdown("""
 <div class="hero-container">
-    <div class="hero-bg-glow" style="background-image: url('https://assets.nflxext.com/ffe/siteui/vlv3/1ecf18b2-adad-4684-bd9a-acab7f2a875f/728df0cc-b789-4bba-9ea7-626a5c2d36ab/MY-en-20230116-popsignuptwoweeks-perspective_alpha_website_medium.jpg'); opacity: 0.5;"></div>
-    <div class="hero-content" style="width: 100%; text-align: center; padding: 0;">
-        <div class="hero-title" style="font-size: 3rem;">FIND YOUR NEXT OBSESSION</div>
-        <div class="hero-desc" style="color:#aaa;">Type a movie title or mood in the top right to unleash the recommendation engine.</div>
-    </div>
+<div class="hero-bg-glow" style="background-image: url('https://assets.nflxext.com/ffe/siteui/vlv3/1ecf18b2-adad-4684-bd9a-acab7f2a875f/728df0cc-b789-4bba-9ea7-626a5c2d36ab/MY-en-20230116-popsignuptwoweeks-perspective_alpha_website_medium.jpg'); opacity: 0.5;"></div>
+<div class="hero-content" style="width: 100%; text-align: center; padding: 0;">
+<div class="hero-title" style="font-size: 3rem;">FIND YOUR NEXT OBSESSION</div>
+<div class="hero-desc" style="color:#aaa;">Type a movie title or mood in the top right to unleash the recommendation engine.</div>
 </div>
-    """, unsafe_allow_html=True)
+</div>
+""", unsafe_allow_html=True)
