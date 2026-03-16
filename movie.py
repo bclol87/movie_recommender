@@ -94,8 +94,14 @@ st.markdown("""
 
 /* 5. CATEGORIES & ROWS ANIMATION */
 .category-header { font-size: 1.6rem; color: #ffffff; font-weight: 700; margin-top: 40px; margin-bottom: 15px; padding-left: 4%; letter-spacing: 0.5px; animation: slideUpFade 1s ease-out both; }
-.scroll-container { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 20px; padding: 15px 4% 50px 4%; scroll-behavior: smooth; animation: slideUpFade 1.2s ease-out both; }
-.scroll-container::-webkit-scrollbar { height: 0px; background: transparent; } 
+.scroll-container { 
+    display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 20px; 
+    padding: 15px 4% 50px 4%; scroll-behavior: smooth; animation: slideUpFade 1.2s ease-out both; 
+}
+/* --- NEW FIX: Styled horizontal scrollbar --- */
+.scroll-container::-webkit-scrollbar { height: 10px; background: rgba(255,255,255,0.05); border-radius: 10px;} 
+.scroll-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 10px;}
+.scroll-container::-webkit-scrollbar-thumb:hover { background: #E50914; }
 
 /* 6. NEON GLOW HOVER EFFECTS ON CARDS */
 .movie-card { flex: 0 0 240px; position: relative; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: pointer; border-radius: 8px; }
