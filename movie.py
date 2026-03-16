@@ -13,152 +13,148 @@ from movie_logic import (
 st.set_page_config(page_title="CineMatch Pro", page_icon="🍿", layout="wide")
 
 # --- CSS STYLING (Fancy Cinematic Theme) ---
-# Pulled to the left margin to prevent Markdown code block rendering
 st.markdown("""
-<style>
-/* 1. IMPORT GOOGLE FONTS */
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;800;900&display=swap');
+    <style>
+    /* 1. IMPORT GOOGLE FONTS */
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;700;900&display=swap');
 
-/* Force Dark Background and Custom Font */
-.stApp { background-color: #141414 !important; color: #ffffff !important; font-family: 'Montserrat', sans-serif; overflow-x: hidden; }
+    /* Force Dark Background and Custom Font */
+    .stApp { background-color: #0b0b0c !important; color: #ffffff !important; font-family: 'Montserrat', sans-serif; }
+    
+    /* Hide Streamlit default headers and footers */
+    #MainMenu {visibility: hidden;} footer {visibility: hidden;} header {visibility: hidden;}
+    .block-container { padding-top: 0rem !important; }
 
-/* Hide Streamlit default headers and footers */
-#MainMenu {visibility: hidden;} footer {visibility: hidden;} header {visibility: hidden;}
-.block-container { padding-top: 0rem !important; padding-bottom: 0rem !important; max-width: 100% !important; padding-left: 0 !important; padding-right: 0 !important;}
+    /* 2. CSS ANIMATION KEYFRAMES */
+    @keyframes slideUpFade { 
+        0% { opacity: 0; transform: translateY(40px); } 
+        100% { opacity: 1; transform: translateY(0); } 
+    }
+    @keyframes slowZoom { 
+        0% { transform: scale(1); } 
+        100% { transform: scale(1.15); } 
+    }
+    @keyframes pulseGlow { 
+        0% { box-shadow: 0 0 0 0 rgba(229, 9, 20, 0.7); } 
+        70% { box-shadow: 0 0 0 15px rgba(229, 9, 20, 0); } 
+        100% { box-shadow: 0 0 0 0 rgba(229, 9, 20, 0); } 
+    }
 
-/* 2. CSS ANIMATION KEYFRAMES */
-@keyframes slideUpFade { 
-    0% { opacity: 0; transform: translateY(40px); } 
-    100% { opacity: 1; transform: translateY(0); } 
-}
-@keyframes floatPoster {
-    0% { transform: translateY(0px); box-shadow: 0 25px 50px rgba(0,0,0,0.8); }
-    50% { transform: translateY(-15px); box-shadow: 0 35px 60px rgba(0,0,0,0.9); }
-    100% { transform: translateY(0px); box-shadow: 0 25px 50px rgba(0,0,0,0.8); }
-}
-@keyframes ambientPan {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-}
+    /* 3. GLASSMORPHISM NAVBAR */
+    .navbar { 
+        display: flex; align-items: center; padding: 20px 4%; 
+        background: rgba(11, 11, 12, 0.6); /* Semi-transparent */
+        backdrop-filter: blur(12px); /* Frosted glass blur */
+        -webkit-backdrop-filter: blur(12px);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        margin-bottom: -70px; position: relative; z-index: 50; 
+        animation: slideUpFade 0.8s ease-out;
+    }
+    .logo { color: #E50914; font-size: 32px; font-weight: 900; letter-spacing: 2px; margin-right: 40px; text-shadow: 0px 2px 10px rgba(229, 9, 20, 0.5); }
+    .nav-links { display: flex; gap: 25px; color: #b3b3b3; font-size: 15px; font-weight: 600; }
+    .nav-links span { cursor: pointer; transition: all 0.3s ease; }
+    .nav-links span:hover { color: #ffffff; text-shadow: 0px 0px 8px rgba(255,255,255,0.6); transform: translateY(-2px); }
 
-/* 3. GLASSMORPHISM NAVBAR */
-.navbar { 
-    display: flex; align-items: center; padding: 20px 5%; 
-    background: linear-gradient(to bottom, rgba(20,20,20,0.9) 0%, rgba(20,20,20,0) 100%);
-    margin-bottom: -80px; position: relative; z-index: 50; 
-    animation: slideUpFade 0.8s ease-out;
-}
-.logo { color: #E50914; font-size: 34px; font-weight: 900; letter-spacing: 1px; margin-right: 50px; text-shadow: 0px 2px 10px rgba(229, 9, 20, 0.4); }
-.nav-links { display: flex; gap: 30px; color: #e5e5e5; font-size: 15px; font-weight: 500; }
-.nav-links span { cursor: pointer; transition: color 0.3s ease; }
-.nav-links span:hover { color: #ffffff; font-weight: 600; }
+    /* 4. HERO SECTION WITH KEN BURNS EFFECT */
+    .hero-container { 
+        position: relative; width: 100%; height: 80vh; display: flex; align-items: center; 
+        margin-bottom: 30px; overflow: hidden; border-radius: 0 0 20px 20px; background-color: #000;
+        animation: slideUpFade 1s ease-out;
+    }
+    .hero-mask {
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+        -webkit-mask-image: linear-gradient(to top, transparent 2%, black 40%); 
+        mask-image: linear-gradient(to top, transparent 2%, black 40%);
+        overflow: hidden;
+    }
+    .hero-bg { 
+        width: 100%; height: 100%; 
+        background-size: cover; background-position: center 20%; background-repeat: no-repeat;
+        opacity: 0.7; 
+        animation: slowZoom 25s infinite alternate linear; /* The magical slow pan/zoom */
+    }
+    
+    /* Hero Content Styling */
+    .hero-content { position: relative; z-index: 2; padding: 0 5%; max-width: 65%; animation: slideUpFade 1.5s ease-out; }
+    .hero-title { font-size: 4.5rem; font-weight: 900; margin-bottom: 10px; line-height: 1.1; text-transform: uppercase; text-shadow: 3px 3px 6px rgba(0,0,0,0.9); letter-spacing: -1px; }
+    .hero-badge { background: linear-gradient(45deg, #E50914, #ff414d); color: white; padding: 6px 12px; border-radius: 4px; font-weight: 700; font-size: 0.9rem; margin-bottom: 20px; display: inline-block; box-shadow: 0 4px 10px rgba(229, 9, 20, 0.4); }
+    .hero-desc { font-size: 1.25rem; color: #e5e5e5; text-shadow: 2px 2px 4px rgba(0,0,0,0.9); margin-bottom: 30px; font-weight: 400; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    
+    /* Buttons */
+    .hero-buttons button { padding: 12px 28px; font-size: 1.2rem; font-weight: 700; border-radius: 8px; border: none; cursor: pointer; margin-right: 15px; transition: all 0.3s ease; }
+    .btn-play { background-color: #ffffff; color: #000000; animation: pulseGlow 2.5s infinite; }
+    .btn-play:hover { background-color: #E50914; color: white; transform: scale(1.05); }
+    .btn-info { background-color: rgba(109, 109, 110, 0.6); color: white; backdrop-filter: blur(5px); }
+    .btn-info:hover { background-color: rgba(255, 255, 255, 0.2); transform: scale(1.05); }
 
-/* 4. DUAL-LAYER HERO SECTION */
-.hero-container { 
-    position: relative; width: 100%; height: 85vh; display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 20px; overflow: hidden; background-color: #000;
-    animation: slideUpFade 1s ease-out;
-}
+    /* 5. CATEGORIES & ROWS ANIMATION */
+    .category-header { font-size: 1.6rem; color: #ffffff; font-weight: 700; margin-top: 40px; margin-bottom: 15px; padding-left: 4%; letter-spacing: 0.5px; animation: slideUpFade 1s ease-out both; }
+    .scroll-container { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 20px; padding: 15px 4% 50px 4%; scroll-behavior: smooth; animation: slideUpFade 1.2s ease-out both; }
+    .scroll-container::-webkit-scrollbar { height: 0px; background: transparent; } 
+    
+    /* 6. NEON GLOW HOVER EFFECTS ON CARDS */
+    .movie-card { flex: 0 0 240px; position: relative; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: pointer; border-radius: 8px; }
+    .movie-card img { width: 100%; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 8px; box-shadow: 0 6px 12px rgba(0,0,0,0.6); transition: all 0.4s ease; border: 2px solid transparent; }
+    
+    .movie-card:hover { transform: scale(1.08) translateY(-10px); z-index: 10; }
+    .movie-card:hover img { border: 2px solid #E50914; box-shadow: 0 15px 30px rgba(229, 9, 20, 0.5); }
+    
+    /* 7. INTERACTIVE TOP 10 CARDS */
+    .top10-card { flex: 0 0 320px; display: flex; align-items: center; position: relative; padding-left: 30px; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: pointer; }
+    .top10-number { font-size: 280px; font-weight: 900; color: #0b0b0c; -webkit-text-stroke: 4px #444; position: absolute; left: -20px; bottom: -50px; z-index: 1; letter-spacing: -15px; transition: all 0.5s ease; text-shadow: 5px 5px 10px rgba(0,0,0,0.8); }
+    .top10-card img { width: 200px; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 8px; z-index: 2; margin-left: 70px; box-shadow: 0 8px 16px rgba(0,0,0,0.8); transition: all 0.4s ease; border: 2px solid transparent; }
+    
+    .top10-card:hover { transform: translateY(-10px); z-index: 10; }
+    .top10-card:hover img { transform: scale(1.1) rotate(2deg); border: 2px solid #E50914; box-shadow: 0 15px 35px rgba(229, 9, 20, 0.6); }
+    .top10-card:hover .top10-number { color: rgba(229,9,20,0.1); -webkit-text-stroke: 4px #E50914; transform: scale(1.05) translateX(-10px); text-shadow: 0 0 20px rgba(229,9,20,0.4); }
 
-/* Layer 1: The Ambient Blurred Background */
-.hero-bg { 
-    position: absolute; top: -10%; left: -10%; width: 120%; height: 120%; 
-    background-size: cover; background-position: center; 
-    filter: blur(40px) brightness(0.35); /* Super blurred and dark */
-    z-index: 0; animation: ambientPan 30s ease-in-out infinite;
-}
-
-/* Layer 2: The Vignette Gradient */
-.hero-vignette {
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;
-    background: radial-gradient(circle at center, transparent 0%, rgba(20,20,20,0.8) 100%),
-                linear-gradient(to right, rgba(20,20,20,1) 0%, transparent 50%),
-                linear-gradient(to top, rgba(20,20,20,1) 0%, transparent 20%);
-}
-
-/* Layer 3: Left Side Content */
-.hero-content { position: relative; z-index: 2; padding-left: 5%; width: 55%; animation: slideUpFade 1.2s ease-out; }
-.hero-title { font-size: 5rem; font-weight: 900; margin-bottom: 15px; line-height: 1.05; text-transform: uppercase; text-shadow: 2px 4px 10px rgba(0,0,0,0.8); letter-spacing: -2px; }
-.hero-badge { background-color: #E50914; color: white; padding: 6px 14px; border-radius: 4px; font-weight: 800; font-size: 0.95rem; margin-bottom: 25px; display: inline-block; box-shadow: 0 4px 15px rgba(229, 9, 20, 0.5); }
-.hero-desc { font-size: 1.3rem; color: #d2d2d2; text-shadow: 1px 2px 5px rgba(0,0,0,0.9); margin-bottom: 35px; font-weight: 400; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; max-width: 90%; }
-
-/* Buttons */
-.hero-buttons button { padding: 14px 32px; font-size: 1.3rem; font-weight: 800; border-radius: 6px; border: none; cursor: pointer; margin-right: 20px; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); display: flex; align-items: center; justify-content: center; gap: 10px; display: inline-flex;}
-.btn-play { background-color: #ffffff; color: #000000; }
-.btn-play:hover { background-color: #d8d8d8; transform: scale(1.05); }
-.btn-info { background-color: rgba(109, 109, 110, 0.7); color: white; backdrop-filter: blur(10px); }
-.btn-info:hover { background-color: rgba(109, 109, 110, 0.4); transform: scale(1.05); }
-
-/* Layer 4: Right Side Floating Poster */
-.hero-poster-wrapper { position: relative; z-index: 2; width: 45%; display: flex; justify-content: center; align-items: center; padding-right: 5%; animation: slideUpFade 1.5s ease-out; }
-.hero-poster-wrapper img { height: 65vh; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); animation: floatPoster 6s ease-in-out infinite; }
-
-/* 5. CAROUSEL ROWS */
-.content-wrapper { padding: 0 5%; }
-.category-header { font-size: 1.5rem; color: #e5e5e5; font-weight: 600; margin-top: 30px; margin-bottom: 15px; animation: slideUpFade 1s ease-out both; }
-.scroll-container { display: flex; flex-wrap: nowrap; overflow-x: auto; overflow-y: visible; gap: 15px; padding: 20px 0 60px 0; scroll-behavior: smooth; animation: slideUpFade 1.2s ease-out both; }
-.scroll-container::-webkit-scrollbar { height: 0px; background: transparent; } 
-
-/* 6. NETFLIX POP-OUT HOVER EFFECT */
-.movie-card { flex: 0 0 220px; position: relative; transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), z-index 0s; cursor: pointer; border-radius: 6px; }
-.movie-card img { width: 100%; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 6px; box-shadow: 0 4px 8px rgba(0,0,0,0.6); transition: all 0.4s ease; border: 2px solid transparent; }
-
-.movie-card:hover { transform: scale(1.15) translateY(-15px); z-index: 99; transition-delay: 0.1s; }
-.movie-card:hover img { border: 2px solid #ffffff; box-shadow: 0 20px 40px rgba(0,0,0,0.9); border-radius: 8px;}
-
-/* 7. TOP 10 RANKING CARDS */
-.top10-card { flex: 0 0 300px; display: flex; align-items: center; position: relative; padding-left: 20px; transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1); cursor: pointer; }
-.top10-number { font-size: 250px; font-weight: 900; color: #141414; -webkit-text-stroke: 4px #595959; position: absolute; left: -25px; bottom: -40px; z-index: 1; letter-spacing: -15px; transition: all 0.4s ease; }
-.top10-card img { width: 170px; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 6px; z-index: 2; margin-left: 60px; box-shadow: 0 8px 16px rgba(0,0,0,0.8); transition: all 0.4s ease; border: 2px solid transparent;}
-
-.top10-card:hover { transform: scale(1.1) translateY(-10px); z-index: 99; transition-delay: 0.1s; }
-.top10-card:hover img { border: 2px solid #ffffff; box-shadow: 0 20px 40px rgba(0,0,0,0.9); }
-.top10-card:hover .top10-number { -webkit-text-stroke: 4px #ffffff; color: rgba(255,255,255,0.1); }
-
-/* 8. SEARCH BAR OVERRIDE */
-.stTextInput { position: absolute; top: 25px; right: 5%; width: 300px !important; z-index: 100 !important; }
-.stTextInput input { color: white !important; background-color: rgba(0,0,0,0.7) !important; border: 1px solid #fff !important; padding: 10px 15px !important; font-size: 14px !important; transition: all 0.3s ease !important; }
-.stTextInput input:focus { background-color: #141414 !important; width: 350px !important; }
-</style>
+    /* 8. GLOWING SEARCH BAR */
+    .stTextInput { position: relative; z-index: 100 !important; }
+    .stTextInput input { color: white !important; background-color: rgba(0,0,0,0.6) !important; border: 1px solid #444 !important; border-radius: 30px !important; padding: 12px 20px !important; font-size: 15px !important; transition: all 0.3s ease !important; }
+    .stTextInput input:focus { box-shadow: 0 0 15px rgba(229, 9, 20, 0.6) !important; border-color: #E50914 !important; background-color: rgba(0,0,0,0.8) !important; }
+    </style>
 """, unsafe_allow_html=True)
 
 # --- NAVIGATION BAR (Visual only) ---
 st.markdown("""
-<div class="navbar">
-    <div class="logo">CineMatch</div>
-    <div class="nav-links">
-        <span>Home</span>
-        <span>Shows</span>
-        <span>Movies</span>
-        <span>New & Popular</span>
-        <span>My List</span>
+    <div class="navbar">
+        <div class="logo">CineMatch</div>
+        <div class="nav-links">
+            <span>Home</span>
+            <span>Shows</span>
+            <span>Movies</span>
+            <span>New & Popular</span>
+            <span>My List</span>
+        </div>
     </div>
-</div>
 """, unsafe_allow_html=True)
-
-# --- SEARCH BAR ---
-search_query = st.text_input("", placeholder="🔍 Search titles, characters, genres...", label_visibility="collapsed")
 
 # --- HELPER FUNCTION TO RENDER UI CARDS ---
 def render_movie_cards(recommendations, score_column, is_top_10=False):
-    html_content = '<div class="content-wrapper"><div class="scroll-container">'
+    html_content = '<div class="scroll-container">'
+    
     for i, (_, row) in enumerate(recommendations.iterrows()):
         poster_url, overview, movie_link = fetch_movie_details(row['title'])
+        score = row.get(score_column, 85) 
         title_safe = str(row['title']).replace('"', '&quot;')
         
         if is_top_10:
             rank = i + 1
             html_content += f'<div class="top10-card"><div class="top10-number">{rank}</div><a href="{movie_link}" target="_blank"><img src="{poster_url}" alt="{title_safe}"></a></div>'
         else:
-            html_content += f'<div class="movie-card" title="{title_safe}"><a href="{movie_link}" target="_blank"><img src="{poster_url}" alt="{title_safe}"></a></div>'
+            html_content += f'<div class="movie-card" title="{title_safe} - {score:.0f}% Match"><a href="{movie_link}" target="_blank"><img src="{poster_url}" alt="{title_safe}"></a></div>'
             
-    html_content += '</div></div>'
+    html_content += '</div>'
     st.markdown(html_content, unsafe_allow_html=True)
+
+# --- SEARCH BAR ---
+col1, col2, col3 = st.columns([6, 3, 1])
+with col2:
+    search_query = st.text_input("", placeholder="🔍 Search titles, characters, genres...", label_visibility="collapsed")
 
 # --- RESULTS SECTION ---
 if search_query:
-    with st.spinner('Loading cinematic experience...'):
+    with st.spinner('Curating cinematic experience...'):
         query_vec = tfidf.transform([search_query])
         sim_scores = cosine_similarity(query_vec, tfidf_matrix).flatten()
         
@@ -169,64 +165,49 @@ if search_query:
             selected_movie = movies.iloc[best_match_idx]['title']
             hero_poster, hero_overview, hero_link = fetch_movie_details(selected_movie)
             
-            # Un-indented to prevent Streamlit from turning it into a code block
             st.markdown(f"""
-<div class="hero-container">
-    <div class="hero-bg" style="background-image: url('{hero_poster}');"></div>
-    <div class="hero-vignette"></div>
-    
-    <div class="hero-content">
-        <div class="hero-title">{selected_movie}</div>
-        <div class="hero-badge">TOP 10 TODAY</div>
-        <div class="hero-desc">{hero_overview}</div>
-        <div class="hero-buttons">
-            <a href="{hero_link}" target="_blank" style="text-decoration:none;">
-                <button class="btn-play">
-                    <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24"><path d="M8 5v14l11-7z"/></svg> 
-                    Play
-                </button>
-            </a>
-            <button class="btn-info">
-                <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
-                More Info
-            </button>
-        </div>
-    </div>
-    
-    <div class="hero-poster-wrapper">
-        <img src="{hero_poster}" alt="{selected_movie}">
-    </div>
-</div>
+                <div class="hero-container">
+                    <div class="hero-mask">
+                        <div class="hero-bg" style="background-image: url('{hero_poster}');"></div>
+                    </div>
+                    <div class="hero-content">
+                        <div class="hero-title">{selected_movie}</div>
+                        <div class="hero-badge">📺 #1 Trending Worldwide</div>
+                        <div class="hero-desc">{hero_overview}</div>
+                        <div class="hero-buttons">
+                            <a href="{hero_link}" target="_blank"><button class="btn-play">▶ Play</button></a>
+                            <button class="btn-info">ⓘ More Info</button>
+                        </div>
+                    </div>
+                </div>
             """, unsafe_allow_html=True)
             
-            st.markdown('<div class="content-wrapper"><div class="category-header">Top 10 Movies in Your Area Today</div></div>', unsafe_allow_html=True)
+            st.markdown('<div class="category-header">Top 10 Movies in Your Area Today</div>', unsafe_allow_html=True)
             render_movie_cards(get_community_recs(selected_movie).head(10), 'CF_Score', is_top_10=True)
 
-            st.markdown(f'<div class="content-wrapper"><div class="category-header">Because you searched for {selected_movie}</div></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="category-header">Because you searched for {selected_movie}</div>', unsafe_allow_html=True)
             render_movie_cards(get_content_based_recs(selected_movie), 'CB_Score')
 
-            st.markdown('<div class="content-wrapper"><div class="category-header">AI Predictions: You\'ll Love These</div></div>', unsafe_allow_html=True)
+            st.markdown('<div class="category-header">AI Predictions: You\'ll Love These</div>', unsafe_allow_html=True)
             render_movie_cards(get_hybrid_recs(selected_movie), 'Hybrid_Score')
 
         else:
             st.warning(f"Searching global TMDB library for topic: '{search_query}'")
             topic_results = search_tmdb_topic(search_query)
+            
             if topic_results:
-                st.markdown('<div class="content-wrapper"><div class="category-header">Global Search Results</div></div>', unsafe_allow_html=True)
+                st.markdown('<div class="category-header">Global Search Results</div>', unsafe_allow_html=True)
                 topic_df = pd.DataFrame(topic_results)
                 render_movie_cards(topic_df, 'score')
             else:
                 st.error("No movies found for that search.")
 
 else:
-    # Default State (Also un-indented)
     st.markdown("""
-<div class="hero-container">
-    <div class="hero-bg" style="background-image: url('https://assets.nflxext.com/ffe/siteui/vlv3/1ecf18b2-adad-4684-bd9a-acab7f2a875f/728df0cc-b789-4bba-9ea7-626a5c2d36ab/MY-en-20230116-popsignuptwoweeks-perspective_alpha_website_medium.jpg'); opacity: 0.5; filter: blur(5px);"></div>
-    <div class="hero-vignette"></div>
-    <div class="hero-content" style="width: 100%; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;">
-        <div class="hero-title" style="font-size: 4rem;">Unlimited movies, TV shows, and more.</div>
-        <div class="hero-desc" style="font-size: 1.5rem; text-align: center;">Search a movie to trigger the AI Recommendation Engine.</div>
-    </div>
-</div>
+        <div class="hero-container" style="background: radial-gradient(circle at center, #222 0%, #000 100%);">
+            <div class="hero-content" style="text-align: center; margin: 0 auto; max-width: 100%;">
+                <div class="hero-title" style="color:#555; text-shadow: none; font-size: 3rem;">FIND YOUR NEXT OBSESSION</div>
+                <div class="hero-desc" style="color:#888;">Type a movie title or mood in the top right to unleash the recommendation engine.</div>
+            </div>
+        </div>
     """, unsafe_allow_html=True)
