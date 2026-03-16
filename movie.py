@@ -37,20 +37,29 @@ st.markdown("""
     100% { transform: translateY(0px); box-shadow: 0 15px 30px rgba(0,0,0,0.8); }
 }
 
-/* 3. GLASSMORPHISM NAVBAR */
+/* 3. ULTRA-PREMIUM MINIMALIST NAVBAR */
 .navbar { 
-    display: flex; align-items: center; padding: 20px 4%; 
-    background: rgba(11, 11, 12, 0.8);
-    backdrop-filter: blur(12px); 
-    -webkit-backdrop-filter: blur(12px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    margin-bottom: -70px; position: relative; z-index: 50; 
+    display: flex; align-items: center; justify-content: space-between; padding: 25px 5%; 
+    background: linear-gradient(to bottom, rgba(5, 5, 5, 0.95) 0%, rgba(5, 5, 5, 0) 100%);
+    backdrop-filter: blur(8px); 
+    -webkit-backdrop-filter: blur(8px);
+    margin-bottom: -85px; position: relative; z-index: 50; 
     animation: slideUpFade 0.8s ease-out;
 }
-.logo { color: #E50914; font-size: 32px; font-weight: 900; letter-spacing: 2px; margin-right: 40px; text-shadow: 0px 2px 10px rgba(229, 9, 20, 0.5); }
-.nav-links { display: flex; gap: 25px; color: #b3b3b3; font-size: 15px; font-weight: 600; }
-.nav-links span { cursor: pointer; transition: all 0.3s ease; }
-.nav-links span:hover { color: #ffffff; text-shadow: 0px 0px 8px rgba(255,255,255,0.6); transform: translateY(-2px); }
+.logo { 
+    color: #E50914; 
+    font-size: 36px; 
+    font-weight: 900; 
+    letter-spacing: 2px; 
+    text-transform: uppercase;
+    text-shadow: 0px 0px 18px rgba(229, 9, 20, 0.7); 
+    transition: transform 0.3s ease, text-shadow 0.3s ease;
+    cursor: pointer;
+}
+.logo:hover {
+    transform: scale(1.05);
+    text-shadow: 0px 0px 25px rgba(229, 9, 20, 1);
+}
 
 /* 4. DUAL-LAYER HERO SECTION */
 .hero-container { 
@@ -119,10 +128,25 @@ st.markdown("""
 .top10-card:hover img { transform: scale(1.1) rotate(2deg); border: 2px solid #E50914; box-shadow: 0 15px 35px rgba(229, 9, 20, 0.6); }
 .top10-card:hover .top10-number { color: rgba(229,9,20,0.1); -webkit-text-stroke: 4px #E50914; transform: scale(1.05) translateX(-10px); text-shadow: 0 0 20px rgba(229,9,20,0.4); }
 
-/* 8. GLOWING SEARCH BAR */
-.stTextInput { position: absolute; top: 20px; right: 5%; width: 300px !important; z-index: 100 !important; }
-.stTextInput input { color: white !important; background-color: rgba(0,0,0,0.6) !important; border: 1px solid #444 !important; border-radius: 30px !important; padding: 12px 20px !important; font-size: 15px !important; transition: all 0.3s ease !important; }
-.stTextInput input:focus { box-shadow: 0 0 15px rgba(229, 9, 20, 0.6) !important; border-color: #E50914 !important; background-color: rgba(0,0,0,0.8) !important; width: 350px !important;}
+/* 8. GLOWING GLASSMORPHISM SEARCH BAR */
+.stTextInput { position: absolute; top: 25px; right: 5%; width: 320px !important; z-index: 100 !important; }
+.stTextInput input { 
+    color: white !important; 
+    background-color: rgba(255, 255, 255, 0.1) !important; 
+    backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(255,255,255,0.2) !important; 
+    border-radius: 30px !important; 
+    padding: 12px 25px !important; 
+    font-size: 15px !important; 
+    transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1) !important; 
+}
+.stTextInput input::placeholder { color: rgba(255,255,255,0.6) !important; }
+.stTextInput input:focus { 
+    box-shadow: 0 0 20px rgba(229, 9, 20, 0.6) !important; 
+    border-color: #E50914 !important; 
+    background-color: rgba(10, 10, 10, 0.9) !important; 
+    width: 380px !important; 
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -136,7 +160,6 @@ components.html(
         script.id = 'h-scroll-script';
         script.innerHTML = `
             document.addEventListener('wheel', function(e) {
-                // CHANGED: Now it only looks for the special class '.top10-scroll-row'
                 const container = e.target.closest('.top10-scroll-row');
                 if (container) {
                     const atLeft = container.scrollLeft === 0 && e.deltaY < 0;
@@ -156,26 +179,18 @@ components.html(
     height=0, width=0
 )
 
-# --- NAVIGATION BAR (Visual only) ---
+# --- NAVIGATION BAR (Clean, Minimalist Version) ---
 st.markdown("""
 <div class="navbar">
 <div class="logo">CineMatch</div>
-<div class="nav-links">
-<span>Home</span>
-<span>Shows</span>
-<span>Movies</span>
-<span>New & Popular</span>
-<span>My List</span>
-</div>
 </div>
 """, unsafe_allow_html=True)
 
 # --- SEARCH BAR ---
-search_query = st.text_input("", placeholder="🔍 Search titles, characters, genres...", label_visibility="collapsed")
+search_query = st.text_input("", placeholder="🔍 Search titles, genres, actors...", label_visibility="collapsed")
 
 # --- HELPER FUNCTION TO RENDER UI CARDS ---
 def render_movie_cards(recommendations, score_column, is_top_10=False):
-    # CHANGED: If it's the Top 10, add the 'top10-scroll-row' class so the JS can find it
     container_class = "scroll-container top10-scroll-row" if is_top_10 else "scroll-container"
     html_content = f'<div class="{container_class}">'
     
@@ -251,8 +266,8 @@ else:
 <div class="hero-container">
 <div class="hero-bg-glow" style="background-image: url('https://assets.nflxext.com/ffe/siteui/vlv3/1ecf18b2-adad-4684-bd9a-acab7f2a875f/728df0cc-b789-4bba-9ea7-626a5c2d36ab/MY-en-20230116-popsignuptwoweeks-perspective_alpha_website_medium.jpg'); opacity: 0.5;"></div>
 <div class="hero-content" style="width: 100%; text-align: center; padding: 0;">
-<div class="hero-title" style="font-size: 3rem;">FIND YOUR NEXT OBSESSION</div>
-<div class="hero-desc" style="color:#aaa;">Type a movie title or mood in the top right to unleash the recommendation engine.</div>
+<div class="hero-title" style="font-size: 3.5rem; text-shadow: 2px 4px 10px rgba(0,0,0,0.8);">FIND YOUR NEXT OBSESSION</div>
+<div class="hero-desc" style="color:#ddd; font-size: 1.4rem;">Type a movie title or mood in the top right to unleash the recommendation engine.</div>
 </div>
 </div>
 """, unsafe_allow_html=True)
