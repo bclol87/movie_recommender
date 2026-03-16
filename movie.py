@@ -92,35 +92,19 @@ st.markdown("""
     animation: floatPoster 6s ease-in-out infinite; 
 }
 
-/* 5. CAROUSEL ROWS WITH MAGNETIC SCROLL SNAPPING */
+/* 5. CATEGORIES & ROWS ANIMATION */
 .category-header { font-size: 1.6rem; color: #ffffff; font-weight: 700; margin-top: 40px; margin-bottom: 15px; padding-left: 4%; letter-spacing: 0.5px; animation: slideUpFade 1s ease-out both; }
-.scroll-container { 
-    display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 20px; 
-    padding: 15px 4% 50px 4%; scroll-behavior: smooth; animation: slideUpFade 1.2s ease-out both; 
-    /* NEW MAGIC: Magnetic snapping properties */
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-}
+.scroll-container { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 20px; padding: 15px 4% 50px 4%; scroll-behavior: smooth; animation: slideUpFade 1.2s ease-out both; }
 .scroll-container::-webkit-scrollbar { height: 0px; background: transparent; } 
 
 /* 6. NEON GLOW HOVER EFFECTS ON CARDS */
-.movie-card { 
-    flex: 0 0 240px; position: relative; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: pointer; border-radius: 8px; 
-    /* SNAPPING ALIGNMENT */
-    scroll-snap-align: start;
-    scroll-margin-left: 4%;
-}
+.movie-card { flex: 0 0 240px; position: relative; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: pointer; border-radius: 8px; }
 .movie-card img { width: 100%; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 8px; box-shadow: 0 6px 12px rgba(0,0,0,0.6); transition: all 0.4s ease; border: 2px solid transparent; }
 .movie-card:hover { transform: scale(1.08) translateY(-10px); z-index: 10; }
 .movie-card:hover img { border: 2px solid #E50914; box-shadow: 0 15px 30px rgba(229, 9, 20, 0.5); }
 
 /* 7. INTERACTIVE TOP 10 CARDS */
-.top10-card { 
-    flex: 0 0 320px; display: flex; align-items: center; position: relative; padding-left: 30px; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: pointer; 
-    /* SNAPPING ALIGNMENT */
-    scroll-snap-align: start;
-    scroll-margin-left: 4%;
-}
+.top10-card { flex: 0 0 320px; display: flex; align-items: center; position: relative; padding-left: 30px; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: pointer; }
 .top10-number { font-size: 280px; font-weight: 900; color: #0b0b0c; -webkit-text-stroke: 4px #444; position: absolute; left: -20px; bottom: -50px; z-index: 1; letter-spacing: -15px; transition: all 0.5s ease; text-shadow: 5px 5px 10px rgba(0,0,0,0.8); }
 .top10-card img { width: 200px; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 8px; z-index: 2; margin-left: 70px; box-shadow: 0 8px 16px rgba(0,0,0,0.8); transition: all 0.4s ease; border: 2px solid transparent; }
 .top10-card:hover { transform: translateY(-10px); z-index: 10; }
