@@ -21,6 +21,9 @@ st.markdown("""
     /* Hide Streamlit default headers and footers */
     #MainMenu {visibility: hidden;} footer {visibility: hidden;} header {visibility: hidden;}
     
+    /* --- NEW FIX: Remove Streamlit's default top padding to push the header up --- */
+    .block-container { padding-top: 0rem !important; }
+    
     /* Top Navigation Bar */
     .navbar { display: flex; align-items: center; padding: 20px 4%; background: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, rgba(20,20,20,0) 100%); margin-bottom: -60px; position: relative; z-index: 10; }
     .logo { color: #E50914; font-size: 28px; font-weight: 900; letter-spacing: 1px; margin-right: 40px; }
@@ -59,7 +62,7 @@ st.markdown("""
         box-shadow: 0 4px 8px rgba(0,0,0,0.5); 
     }
     
-    /* --- UPDATED: Top 10 Cards are now significantly bigger! --- */
+    /* Top 10 Specific Cards - Bigger Size */
     .top10-card { flex: 0 0 320px; display: flex; align-items: center; position: relative; padding-left: 30px; }
     .top10-number { font-size: 260px; font-weight: 900; color: #000; -webkit-text-stroke: 4px #555; position: absolute; left: -20px; bottom: -50px; z-index: 1; letter-spacing: -15px; }
     .top10-card img { 
