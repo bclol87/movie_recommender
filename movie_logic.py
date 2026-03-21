@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import requests
 import ast
+import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -99,3 +100,27 @@ def get_hybrid_recs(movie_title):
     hybrid = pd.concat([cb, cf]).drop_duplicates(subset=['id'])
     hybrid['Hybrid_Score'] = ((hybrid['vote_average']/10)*100 * 0.3) + (hybrid.get('CB_Score', 50) * 0.7)
     return hybrid.sort_values('Hybrid_Score', ascending=False).head(20)
+
+def get_profile_based_recs(liked_titles):
+    """Generates recommendations based on an array of liked movie titles."""
+    if not liked_titles:
+        return pd.DataFrame()
+    
+    # Find the indices of the movies the user has liked
+    indices = movies[movies['title'].isin(liked_titles)].index
+    if len(indices) == 0:
+        return pd.DataFrame()
+    
+    # MAGIC: Combine the TF-IDF vectors of all liked movies into one "User Profile"
+    user_profile = np.asarray(tfidf_matrix[indices].mean(axis=0))
+    
+    # Calculate similarity of ALL movies against the combined user profile
+    sim_scores = cosine_similarity(user_profile, tfidf_matrix).flatten()
+    
+    # Sort and grab top matches, excluding the ones they already liked
+    sim_scores_indices = sim_scores.argsort()[::-1]
+    top_indices = [i for i in sim_scores_indices if movies.iloc[i]['title'] not in liked_titles][:20]
+    
+    recs = movies.iloc[top_indices].copy()
+    recs['Profile_Score'] = sim_scores[top_indices] * 100
+    return recs
