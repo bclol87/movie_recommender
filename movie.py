@@ -7,11 +7,16 @@ import pandas as pd
 from movie_logic import (
     movies, cosine_sim, tfidf, tfidf_matrix,
     fetch_movie_details, search_tmdb_topic,
-    get_content_based_recs, get_community_recs, get_hybrid_recs
+    get_content_based_recs, get_community_recs, get_hybrid_recs,
+    get_profile_based_recs # <-- NEW IMPORT
 )
 
 # --- PAGE CONFIGURATION ---
 st.set_page_config(page_title="CineMatch Pro", page_icon="🍿", layout="wide")
+
+# --- SESSION STATE INITIALIZATION (MEMORY BANK) ---
+if 'liked_movies' not in st.session_state:
+    st.session_state.liked_movies = []
 
 # --- CSS STYLING (Ultra-Premium Cinematic Theme) ---
 st.markdown("""
@@ -64,7 +69,7 @@ st.markdown("""
 /* 4. DUAL-LAYER HERO SECTION */
 .hero-container { 
     position: relative; width: 100%; height: 85vh; display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 30px; overflow: hidden; background-color: #0b0b0c;
+    margin-bottom: 10px; overflow: hidden; background-color: #0b0b0c;
     border-bottom: 1px solid #1a1a1a;
     animation: slideUpFade 1s ease-out;
 }
@@ -90,13 +95,13 @@ st.markdown("""
 .btn-info { background-color: rgba(109, 109, 110, 0.6); color: white; backdrop-filter: blur(8px); }
 .btn-info:hover { background-color: rgba(255, 255, 255, 0.25); transform: scale(1.05); }
 
-/* Layer 3: Right Side Clear Poster - ADDED MARGIN TO PUSH DOWN FROM SEARCH BAR */
+/* Layer 3: Right Side Clear Poster */
 .hero-poster-box {
     position: relative; z-index: 2; width: 45%; display: flex; justify-content: center; align-items: center;
     padding-right: 5%; margin-top: 60px; animation: slideUpFade 1.2s ease-out;
 }
 .hero-poster-box img {
-    height: 55vh; /* Reduced height so it fits beautifully without hitting the top */
+    height: 55vh; 
     border-radius: 12px;
     border: 1px solid rgba(255,255,255,0.15);
     animation: floatPoster 6s ease-in-out infinite; 
@@ -128,13 +133,13 @@ st.markdown("""
 .top10-card:hover img { transform: scale(1.1) rotate(2deg); border: 2px solid #E50914; box-shadow: 0 15px 35px rgba(229, 9, 20, 0.6); }
 .top10-card:hover .top10-number { color: rgba(229,9,20,0.1); -webkit-text-stroke: 4px #E50914; transform: scale(1.05) translateX(-10px); text-shadow: 0 0 20px rgba(229,9,20,0.4); }
 
-/* 8. SLEEK CINEMATIC SEARCH BAR (NETFLIX STYLE) */
+/* 8. SLEEK CINEMATIC SEARCH BAR */
 .stTextInput { position: absolute; top: 15px; right: 5%; width: 280px !important; z-index: 100 !important; pointer-events: auto;}
 .stTextInput input { 
     color: white !important; 
-    background-color: rgba(0, 0, 0, 0.6) !important; /* Dark, sleek background */
-    border: 1px solid rgba(255, 255, 255, 0.2) !important; /* Subtle, classy outline */
-    border-radius: 6px !important; /* Authentic streaming app square-round edges */
+    background-color: rgba(0, 0, 0, 0.6) !important; 
+    border: 1px solid rgba(255, 255, 255, 0.2) !important; 
+    border-radius: 6px !important; 
     padding: 12px 20px !important; 
     font-size: 15px !important; 
     transition: all 0.3s ease !important; 
@@ -142,8 +147,8 @@ st.markdown("""
 .stTextInput input::placeholder { color: rgba(255,255,255,0.4) !important; font-weight: 300 !important; }
 .stTextInput input:focus { 
     background-color: rgba(0, 0, 0, 0.9) !important; 
-    border-color: #E50914 !important; /* Sharp Netflix red border on click */
-    box-shadow: none !important; /* Removed messy outer glow for a cleaner look */
+    border-color: #E50914 !important; 
+    box-shadow: none !important; 
     width: 320px !important; 
 }
 </style>
@@ -178,7 +183,7 @@ components.html(
     height=0, width=0
 )
 
-# --- NAVIGATION BAR (Super Clean & Minimalist) ---
+# --- NAVIGATION BAR ---
 st.markdown("""
 <div class="navbar">
 <div class="logo">CineMatch</div>
@@ -241,6 +246,24 @@ if search_query:
 </div>
 """, unsafe_allow_html=True)
             
+            # --- LIKE BUTTON UI ---
+            st.write("") # Quick vertical spacing
+            col1, col2, col3 = st.columns([2, 6, 2])
+            with col2:
+                if selected_movie in st.session_state.liked_movies:
+                    st.success(f"❤️ You liked '{selected_movie}'!")
+                else:
+                    if st.button(f"❤️ Like '{selected_movie}' to improve recommendations", use_container_width=True):
+                        st.session_state.liked_movies.append(selected_movie)
+                        st.rerun() # Instantly refresh to show new recommendations
+
+            # --- PERSONALIZED RECOMMENDATIONS (Based on Likes) ---
+            if st.session_state.liked_movies:
+                st.markdown('<div class="category-header">❤️ Because of your Liked Movies</div>', unsafe_allow_html=True)
+                profile_recs = get_profile_based_recs(st.session_state.liked_movies)
+                if not profile_recs.empty:
+                    render_movie_cards(profile_recs, 'Profile_Score')
+            
             st.markdown('<div class="category-header">Top 10 Movies in Your Area Today</div>', unsafe_allow_html=True)
             render_movie_cards(get_community_recs(selected_movie).head(10), 'CF_Score', is_top_10=True)
 
@@ -262,7 +285,7 @@ if search_query:
                 st.error("No movies found for that search.")
 
 else:
-    # COMPLETELY FLATTENED HTML to prevent Streamlit code blocks
+    # --- HOME SCREEN HERO BANNER ---
     st.markdown("""
 <div class="hero-container">
 <div class="hero-bg-glow" style="background-image: url('https://assets.nflxext.com/ffe/siteui/vlv3/1ecf18b2-adad-4684-bd9a-acab7f2a875f/728df0cc-b789-4bba-9ea7-626a5c2d36ab/MY-en-20230116-popsignuptwoweeks-perspective_alpha_website_medium.jpg'); opacity: 0.5;"></div>
@@ -272,3 +295,10 @@ else:
 </div>
 </div>
 """, unsafe_allow_html=True)
+
+    # --- SHOW PERSONALIZED FEED ON HOME SCREEN IF THEY LIKED MOVIES ---
+    if st.session_state.liked_movies:
+        st.markdown('<div class="category-header">❤️ For You (Based on your Likes)</div>', unsafe_allow_html=True)
+        profile_recs = get_profile_based_recs(st.session_state.liked_movies)
+        if not profile_recs.empty:
+            render_movie_cards(profile_recs, 'Profile_Score')
