@@ -2,7 +2,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 from sklearn.metrics.pairwise import cosine_similarity
 import pandas as pd
-import urllib.parse # <-- NEW: Needed to encode movie titles for the URL
+import urllib.parse 
 
 # --- MAGIC STEP: Import our functions from our new logic file ---
 from movie_logic import (
@@ -19,19 +19,18 @@ st.set_page_config(page_title="CineMatch Pro", page_icon="🍿", layout="wide")
 if 'liked_movies' not in st.session_state:
     st.session_state.liked_movies = []
 
-# --- MAGIC STEP: HANDLE HTML LIKES VIA URL PARAMETERS ---
-# When a user clicks the HTML heart, it reloads the page with a "?like=MovieTitle" in the URL.
-# This catches that URL parameter, saves the like, and clears the URL!
-if "like" in st.query_params:
-    liked_movie = urllib.parse.unquote(st.query_params["like"])
-    # Toggle logic: If they already liked it, unlike it. Otherwise, like it.
-    if liked_movie in st.session_state.liked_movies:
-        st.session_state.liked_movies.remove(liked_movie) 
+# --- MULTI-LIKE MEMORY FIX ---
+# Because clicking HTML links causes a full page reload (which wipes memory),
+# we catch the ENTIRE list of liked movies from the URL and save it back into memory!
+if "likes" in st.query_params:
+    likes_str = urllib.parse.unquote(st.query_params["likes"])
+    if likes_str:
+        st.session_state.liked_movies = likes_str.split("|") # Unpack the list
     else:
-        st.session_state.liked_movies.append(liked_movie) 
+        st.session_state.liked_movies = []
     
-    del st.query_params["like"] # Clear the parameter so it doesn't get stuck
-    st.rerun() # Refresh immediately to show the red heart
+    del st.query_params["likes"] # Clear the URL so it looks clean
+    st.rerun() # Do a soft refresh to lock it into memory
 
 # Sync search bar with URL so it doesn't clear when you click a Like button
 if "q" in st.query_params and "search_query" not in st.session_state:
@@ -114,34 +113,14 @@ st.markdown("""
 
 /* 6. NEW: FLOATING HEART LIKE BUTTON */
 .like-btn {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    background-color: rgba(0, 0, 0, 0.6);
-    color: white;
-    border: 1px solid rgba(255,255,255,0.3);
-    border-radius: 50%;
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    text-decoration: none !important;
-    z-index: 50; 
-    transition: all 0.2s ease;
-    backdrop-filter: blur(4px);
+    position: absolute; top: 10px; right: 10px; background-color: rgba(0, 0, 0, 0.6);
+    color: white; border: 1px solid rgba(255,255,255,0.3); border-radius: 50%;
+    width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+    font-size: 16px; text-decoration: none !important; z-index: 50; 
+    transition: all 0.2s ease; backdrop-filter: blur(4px);
 }
-.like-btn:hover {
-    transform: scale(1.15);
-    background-color: rgba(0, 0, 0, 0.9);
-    border-color: #E50914;
-}
-.like-btn.liked {
-    background-color: rgba(229, 9, 20, 0.15);
-    border-color: #E50914;
-    text-shadow: 0 0 10px rgba(229,9,20,0.8);
-}
+.like-btn:hover { transform: scale(1.15); background-color: rgba(0, 0, 0, 0.9); border-color: #E50914; }
+.like-btn.liked { background-color: rgba(229, 9, 20, 0.15); border-color: #E50914; text-shadow: 0 0 10px rgba(229,9,20,0.8); }
 
 /* 7. NEON GLOW HOVER EFFECTS ON CARDS */
 .movie-card { flex: 0 0 240px; position: relative; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: pointer; border-radius: 8px; scroll-snap-align: start; scroll-margin-left: 4%;}
@@ -149,7 +128,7 @@ st.markdown("""
 .movie-card:hover { transform: scale(1.08) translateY(-10px); z-index: 10; }
 .movie-card:hover img { border: 2px solid #E50914; box-shadow: 0 15px 30px rgba(229, 9, 20, 0.5); }
 
-/* 8. INTERACTIVE TOP 10 CARDS (UPDATED FOR HEARTS) */
+/* 8. INTERACTIVE TOP 10 CARDS */
 .top10-card { flex: 0 0 320px; display: flex; align-items: center; position: relative; padding-left: 30px; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: pointer; scroll-snap-align: start; scroll-margin-left: 4%;}
 .top10-number { font-size: 280px; font-weight: 900; color: #0b0b0c; -webkit-text-stroke: 4px #444; position: absolute; left: -20px; bottom: -50px; z-index: 1; letter-spacing: -15px; transition: all 0.5s ease; text-shadow: 5px 5px 10px rgba(0,0,0,0.8); }
 .poster-wrapper { position: relative; z-index: 2; margin-left: 70px; transition: all 0.4s ease; display: flex; }
@@ -205,7 +184,6 @@ st.markdown("""
 # --- SEARCH BAR WITH STATE TRACKING ---
 search_query = st.text_input("", placeholder="🔍 Search titles, genres, actors...", label_visibility="collapsed", key="search_query")
 
-# Update the URL so when you click a 'Like', it remembers what you searched for!
 if search_query:
     st.query_params["q"] = search_query
 elif "q" in st.query_params:
@@ -216,7 +194,6 @@ def render_movie_cards(recommendations, score_column, is_top_10=False):
     container_class = "scroll-container top10-scroll-row" if is_top_10 else "scroll-container"
     html_content = f'<div class="{container_class}">'
     
-    # Grab the current search parameter so it doesn't vanish when the page reloads
     current_q = st.session_state.get("search_query", "")
     q_param = f"&q={urllib.parse.quote(current_q)}" if current_q else ""
     
@@ -226,19 +203,28 @@ def render_movie_cards(recommendations, score_column, is_top_10=False):
         score = row.get(score_column, 85) 
         title_safe = str(title).replace('"', '&quot;')
         
-        # --- NEW: LIKE BUTTON URL INJECTION ---
-        title_encoded = urllib.parse.quote(str(title))
+        # --- THE FIX: Pack the entire list of liked movies into the URL ---
         is_liked = title in st.session_state.liked_movies
+        future_likes = st.session_state.liked_movies.copy()
+        
+        # Add or remove this specific movie from the list before making the URL
+        if is_liked:
+            future_likes.remove(title)
+        else:
+            future_likes.append(title)
+            
+        # Join the list together with a pipe | character (e.g. Inception|Avatar|Cars)
+        likes_str = "|".join(future_likes)
+        
         heart_icon = "❤️" if is_liked else "🤍"
         btn_class = "like-btn liked" if is_liked else "like-btn"
         
-        # When clicked, goes to /?like=MovieTitle&q=CurrentSearch
-        like_url = f"/?like={title_encoded}{q_param}"
+        # Send the massive list into the URL
+        like_url = f"/?likes={urllib.parse.quote(likes_str)}{q_param}"
         like_html = f'<a href="{like_url}" target="_self" class="{btn_class}" title="Like {title_safe}">{heart_icon}</a>'
         
         if is_top_10:
             rank = i + 1
-            # Wrapped poster + heart in 'poster-wrapper' to keep heart locked to top right
             html_content += f'<div class="top10-card"><div class="top10-number">{rank}</div><div class="poster-wrapper">{like_html}<a href="{movie_link}" target="_blank"><img src="{poster_url}" alt="{title_safe}"></a></div></div>'
         else:
             html_content += f'<div class="movie-card" title="{title_safe} - {score:.0f}% Match">{like_html}<a href="{movie_link}" target="_blank"><img src="{poster_url}" alt="{title_safe}"></a></div>'
