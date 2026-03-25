@@ -2,7 +2,8 @@ import streamlit as st
 import streamlit.components.v1 as components
 from sklearn.metrics.pairwise import cosine_similarity
 import pandas as pd
-import urllib.parse # <-- NEW: Needed to encode movie titles for the URL
+import urllib.parse
+import re # <-- NEW: Needed to clean text in the search engine
 
 # --- MAGIC STEP: Import our functions from our new logic file ---
 from movie_logic import (
@@ -20,8 +21,6 @@ if 'liked_movies' not in st.session_state:
     st.session_state.liked_movies = []
 
 # --- MAGIC STEP: HANDLE HTML LIKES VIA URL PARAMETERS ---
-# When a user clicks the HTML heart, it reloads the page with a "?like=MovieTitle" in the URL.
-# This catches that URL parameter, saves the like, and clears the URL!
 if "like" in st.query_params:
     liked_movie = urllib.parse.unquote(st.query_params["like"])
     # Toggle logic: If they already liked it, unlike it. Otherwise, like it.
@@ -112,36 +111,15 @@ st.markdown("""
 .scroll-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px;}
 .scroll-container::-webkit-scrollbar-thumb:hover { background: #E50914; }
 
-/* 6. NEW: FLOATING HEART LIKE BUTTON */
+/* 6. FLOATING HEART LIKE BUTTON */
 .like-btn {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    background-color: rgba(0, 0, 0, 0.6);
-    color: white;
-    border: 1px solid rgba(255,255,255,0.3);
-    border-radius: 50%;
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    text-decoration: none !important;
-    z-index: 50; 
-    transition: all 0.2s ease;
-    backdrop-filter: blur(4px);
+    position: absolute; top: 10px; right: 10px; background-color: rgba(0, 0, 0, 0.6); color: white;
+    border: 1px solid rgba(255,255,255,0.3); border-radius: 50%; width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center; font-size: 16px;
+    text-decoration: none !important; z-index: 50; transition: all 0.2s ease; backdrop-filter: blur(4px);
 }
-.like-btn:hover {
-    transform: scale(1.15);
-    background-color: rgba(0, 0, 0, 0.9);
-    border-color: #E50914;
-}
-.like-btn.liked {
-    background-color: rgba(229, 9, 20, 0.15);
-    border-color: #E50914;
-    text-shadow: 0 0 10px rgba(229,9,20,0.8);
-}
+.like-btn:hover { transform: scale(1.15); background-color: rgba(0, 0, 0, 0.9); border-color: #E50914; }
+.like-btn.liked { background-color: rgba(229, 9, 20, 0.15); border-color: #E50914; text-shadow: 0 0 10px rgba(229,9,20,0.8); }
 
 /* 7. NEON GLOW HOVER EFFECTS ON CARDS */
 .movie-card { flex: 0 0 240px; position: relative; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: pointer; border-radius: 8px; scroll-snap-align: start; scroll-margin-left: 4%;}
@@ -149,7 +127,7 @@ st.markdown("""
 .movie-card:hover { transform: scale(1.08) translateY(-10px); z-index: 10; }
 .movie-card:hover img { border: 2px solid #E50914; box-shadow: 0 15px 30px rgba(229, 9, 20, 0.5); }
 
-/* 8. INTERACTIVE TOP 10 CARDS (UPDATED FOR HEARTS) */
+/* 8. INTERACTIVE TOP 10 CARDS */
 .top10-card { flex: 0 0 320px; display: flex; align-items: center; position: relative; padding-left: 30px; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: pointer; scroll-snap-align: start; scroll-margin-left: 4%;}
 .top10-number { font-size: 280px; font-weight: 900; color: #0b0b0c; -webkit-text-stroke: 4px #444; position: absolute; left: -20px; bottom: -50px; z-index: 1; letter-spacing: -15px; transition: all 0.5s ease; text-shadow: 5px 5px 10px rgba(0,0,0,0.8); }
 .poster-wrapper { position: relative; z-index: 2; margin-left: 70px; transition: all 0.4s ease; display: flex; }
@@ -205,7 +183,6 @@ st.markdown("""
 # --- SEARCH BAR WITH STATE TRACKING ---
 search_query = st.text_input("", placeholder="🔍 Search titles, genres, actors...", label_visibility="collapsed", key="search_query")
 
-# Update the URL so when you click a 'Like', it remembers what you searched for!
 if search_query:
     st.query_params["q"] = search_query
 elif "q" in st.query_params:
@@ -216,7 +193,6 @@ def render_movie_cards(recommendations, score_column, is_top_10=False):
     container_class = "scroll-container top10-scroll-row" if is_top_10 else "scroll-container"
     html_content = f'<div class="{container_class}">'
     
-    # Grab the current search parameter so it doesn't vanish when the page reloads
     current_q = st.session_state.get("search_query", "")
     q_param = f"&q={urllib.parse.quote(current_q)}" if current_q else ""
     
@@ -226,19 +202,17 @@ def render_movie_cards(recommendations, score_column, is_top_10=False):
         score = row.get(score_column, 85) 
         title_safe = str(title).replace('"', '&quot;')
         
-        # --- NEW: LIKE BUTTON URL INJECTION ---
+        # --- LIKE BUTTON URL INJECTION ---
         title_encoded = urllib.parse.quote(str(title))
         is_liked = title in st.session_state.liked_movies
         heart_icon = "❤️" if is_liked else "🤍"
         btn_class = "like-btn liked" if is_liked else "like-btn"
         
-        # When clicked, goes to /?like=MovieTitle&q=CurrentSearch
         like_url = f"/?like={title_encoded}{q_param}"
         like_html = f'<a href="{like_url}" target="_self" class="{btn_class}" title="Like {title_safe}">{heart_icon}</a>'
         
         if is_top_10:
             rank = i + 1
-            # Wrapped poster + heart in 'poster-wrapper' to keep heart locked to top right
             html_content += f'<div class="top10-card"><div class="top10-number">{rank}</div><div class="poster-wrapper">{like_html}<a href="{movie_link}" target="_blank"><img src="{poster_url}" alt="{title_safe}"></a></div></div>'
         else:
             html_content += f'<div class="movie-card" title="{title_safe} - {score:.0f}% Match">{like_html}<a href="{movie_link}" target="_blank"><img src="{poster_url}" alt="{title_safe}"></a></div>'
@@ -249,13 +223,27 @@ def render_movie_cards(recommendations, score_column, is_top_10=False):
 # --- RESULTS SECTION ---
 if search_query:
     with st.spinner('Curating cinematic experience...'):
-        query_vec = tfidf.transform([search_query])
+        
+        # --- 1. SMART QUERY CLEANER ---
+        # Strip out words that confuse the AI
+        clean_query = search_query.lower()
+        fillers = [r'\bmovies\b', r'\bmovie\b', r'\brelated\b', r'\babout\b', r'\bshow\b', r'\bme\b', r'\bfind\b']
+        for filler in fillers:
+            clean_query = re.sub(filler, '', clean_query).strip()
+        
+        # Safety net: If the cleaning left it totally empty, use the original
+        if not clean_query:
+            clean_query = search_query
+
+        # --- 2. AI SEARCH USING CLEANED TEXT ---
+        query_vec = tfidf.transform([clean_query])
         sim_scores = cosine_similarity(query_vec, tfidf_matrix).flatten()
         
         best_match_idx = sim_scores.argmax()
         best_score = sim_scores[best_match_idx]
         
-        if best_score > 0:
+        # --- 3. RAISED CONFIDENCE THRESHOLD (> 0.05) ---
+        if best_score > 0.05:
             selected_movie = movies.iloc[best_match_idx]['title']
             hero_poster, hero_overview, hero_link = fetch_movie_details(selected_movie)
             
@@ -309,6 +297,7 @@ if search_query:
             render_movie_cards(get_hybrid_recs(selected_movie), 'Hybrid_Score')
 
         else:
+            # If the score is too low, fall back to a global TMDB search
             st.warning(f"Searching global TMDB library for topic: '{search_query}'")
             topic_results = search_tmdb_topic(search_query)
             
