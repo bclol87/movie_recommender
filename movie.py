@@ -2,8 +2,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 from sklearn.metrics.pairwise import cosine_similarity
 import pandas as pd
-import urllib.parse
-import re # <-- For the new Smart Text Cleaner
+import urllib.parse # <-- NEW: Needed to encode movie titles for the URL
 
 # --- MAGIC STEP: Import our functions from our new logic file ---
 from movie_logic import (
@@ -21,40 +20,73 @@ if 'liked_movies' not in st.session_state:
     st.session_state.liked_movies = []
 
 # --- MAGIC STEP: HANDLE HTML LIKES VIA URL PARAMETERS ---
+# When a user clicks the HTML heart, it reloads the page with a "?like=MovieTitle" in the URL.
+# This catches that URL parameter, saves the like, and clears the URL!
 if "like" in st.query_params:
     liked_movie = urllib.parse.unquote(st.query_params["like"])
+    # Toggle logic: If they already liked it, unlike it. Otherwise, like it.
     if liked_movie in st.session_state.liked_movies:
         st.session_state.liked_movies.remove(liked_movie) 
     else:
         st.session_state.liked_movies.append(liked_movie) 
     
-    del st.query_params["like"] 
-    st.rerun() 
+    del st.query_params["like"] # Clear the parameter so it doesn't get stuck
+    st.rerun() # Refresh immediately to show the red heart
 
+# Sync search bar with URL so it doesn't clear when you click a Like button
 if "q" in st.query_params and "search_query" not in st.session_state:
     st.session_state.search_query = st.query_params["q"]
 
 # --- CSS STYLING (Ultra-Premium Cinematic Theme) ---
 st.markdown("""
 <style>
+/* 1. IMPORT GOOGLE FONTS */
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;700;900&display=swap');
+
+/* Force Dark Background and Custom Font */
 .stApp { background-color: #0b0b0c !important; color: #ffffff !important; font-family: 'Montserrat', sans-serif; overflow-x: hidden; }
+
+/* Hide Streamlit default headers and footers */
 #MainMenu {visibility: hidden;} footer {visibility: hidden;} header {visibility: hidden;}
 .block-container { padding-top: 0rem !important; padding-bottom: 0rem !important; max-width: 100% !important; padding-left: 0 !important; padding-right: 0 !important;}
 
-@keyframes slideUpFade { 0% { opacity: 0; transform: translateY(40px); } 100% { opacity: 1; transform: translateY(0); } }
+/* 2. CSS ANIMATION KEYFRAMES */
+@keyframes slideUpFade { 
+    0% { opacity: 0; transform: translateY(40px); } 
+    100% { opacity: 1; transform: translateY(0); } 
+}
 @keyframes floatPoster {
     0% { transform: translateY(0px); box-shadow: 0 15px 35px rgba(0,0,0,0.9); }
     50% { transform: translateY(-15px); box-shadow: 0 25px 50px rgba(229, 9, 20, 0.2); }
     100% { transform: translateY(0px); box-shadow: 0 15px 35px rgba(0,0,0,0.9); }
 }
 
-.navbar { display: flex; align-items: center; justify-content: space-between; padding: 25px 5%; background: linear-gradient(to bottom, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.4) 50%, rgba(0, 0, 0, 0) 100%); margin-bottom: -100px; position: relative; z-index: 50; animation: slideUpFade 0.8s ease-out; pointer-events: none; }
-.logo { color: #E50914; font-size: 38px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; text-shadow: 0px 0px 20px rgba(229, 9, 20, 0.6); transition: transform 0.3s ease, text-shadow 0.3s ease; cursor: pointer; pointer-events: auto; }
+/* 3. ULTRA-PREMIUM MINIMALIST NAVBAR */
+.navbar { 
+    display: flex; align-items: center; justify-content: space-between; padding: 25px 5%; 
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.4) 50%, rgba(0, 0, 0, 0) 100%);
+    margin-bottom: -100px; position: relative; z-index: 50; 
+    animation: slideUpFade 0.8s ease-out;
+    pointer-events: none;
+}
+.logo { 
+    color: #E50914; font-size: 38px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase;
+    text-shadow: 0px 0px 20px rgba(229, 9, 20, 0.6); transition: transform 0.3s ease, text-shadow 0.3s ease;
+    cursor: pointer; pointer-events: auto;
+}
 .logo:hover { transform: scale(1.05); text-shadow: 0px 0px 25px rgba(229, 9, 20, 1); }
 
-.hero-container { position: relative; width: 100%; height: 85vh; display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; overflow: hidden; background-color: #0b0b0c; border-bottom: 1px solid #1a1a1a; animation: slideUpFade 1s ease-out; }
-.hero-bg-glow { position: absolute; top: -10%; left: -10%; width: 120%; height: 120%; background-size: cover; background-position: center; background-repeat: no-repeat; filter: blur(45px) brightness(0.35); z-index: 0; }
+/* 4. DUAL-LAYER HERO SECTION */
+.hero-container { 
+    position: relative; width: 100%; height: 85vh; display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px; overflow: hidden; background-color: #0b0b0c; border-bottom: 1px solid #1a1a1a;
+    animation: slideUpFade 1s ease-out;
+}
+.hero-bg-glow { 
+    position: absolute; top: -10%; left: -10%; width: 120%; height: 120%; 
+    background-size: cover; background-position: center; background-repeat: no-repeat;
+    filter: blur(45px) brightness(0.35); z-index: 0;
+}
 .hero-content { position: relative; z-index: 2; padding-left: 5%; width: 55%; margin-top: 40px; animation: slideUpFade 1.5s ease-out; }
 .hero-title { font-size: 4.8rem; font-weight: 900; margin-bottom: 10px; line-height: 1.1; text-transform: uppercase; text-shadow: 3px 3px 8px rgba(0,0,0,0.9); letter-spacing: -1px; }
 .hero-badge { background: linear-gradient(45deg, #E50914, #ff414d); color: white; padding: 6px 14px; border-radius: 4px; font-weight: 800; font-size: 0.9rem; margin-bottom: 25px; display: inline-block; box-shadow: 0 4px 10px rgba(229, 9, 20, 0.4); text-transform: uppercase; letter-spacing: 1px; }
@@ -69,21 +101,55 @@ st.markdown("""
 .hero-poster-box { position: relative; z-index: 2; width: 45%; display: flex; justify-content: center; align-items: center; padding-right: 5%; margin-top: 60px; animation: slideUpFade 1.2s ease-out; }
 .hero-poster-box img { height: 55vh; border-radius: 12px; border: 1px solid rgba(255,255,255,0.15); animation: floatPoster 6s ease-in-out infinite;  }
 
+/* 5. CATEGORIES & ROWS ANIMATION */
 .category-header { font-size: 1.6rem; color: #ffffff; font-weight: 700; margin-top: 40px; margin-bottom: 15px; padding-left: 4%; letter-spacing: 0.5px; animation: slideUpFade 1s ease-out both; }
-.scroll-container { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 20px; padding: 15px 4% 50px 4%; scroll-behavior: smooth; animation: slideUpFade 1.2s ease-out both; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; }
+.scroll-container { 
+    display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 20px; 
+    padding: 15px 4% 50px 4%; scroll-behavior: smooth; animation: slideUpFade 1.2s ease-out both; 
+    scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch;
+}
 .scroll-container::-webkit-scrollbar { height: 8px; background: rgba(255,255,255,0.02); border-radius: 10px;} 
 .scroll-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px;}
 .scroll-container::-webkit-scrollbar-thumb:hover { background: #E50914; }
 
-.like-btn { position: absolute; top: 10px; right: 10px; background-color: rgba(0, 0, 0, 0.6); color: white; border: 1px solid rgba(255,255,255,0.3); border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 16px; text-decoration: none !important; z-index: 50; transition: all 0.2s ease; backdrop-filter: blur(4px); }
-.like-btn:hover { transform: scale(1.15); background-color: rgba(0, 0, 0, 0.9); border-color: #E50914; }
-.like-btn.liked { background-color: rgba(229, 9, 20, 0.15); border-color: #E50914; text-shadow: 0 0 10px rgba(229,9,20,0.8); }
+/* 6. NEW: FLOATING HEART LIKE BUTTON */
+.like-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: rgba(0, 0, 0, 0.6);
+    color: white;
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    text-decoration: none !important;
+    z-index: 50; 
+    transition: all 0.2s ease;
+    backdrop-filter: blur(4px);
+}
+.like-btn:hover {
+    transform: scale(1.15);
+    background-color: rgba(0, 0, 0, 0.9);
+    border-color: #E50914;
+}
+.like-btn.liked {
+    background-color: rgba(229, 9, 20, 0.15);
+    border-color: #E50914;
+    text-shadow: 0 0 10px rgba(229,9,20,0.8);
+}
 
+/* 7. NEON GLOW HOVER EFFECTS ON CARDS */
 .movie-card { flex: 0 0 240px; position: relative; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: pointer; border-radius: 8px; scroll-snap-align: start; scroll-margin-left: 4%;}
 .movie-card img { width: 100%; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 8px; box-shadow: 0 6px 12px rgba(0,0,0,0.6); transition: all 0.4s ease; border: 2px solid transparent; }
 .movie-card:hover { transform: scale(1.08) translateY(-10px); z-index: 10; }
 .movie-card:hover img { border: 2px solid #E50914; box-shadow: 0 15px 30px rgba(229, 9, 20, 0.5); }
 
+/* 8. INTERACTIVE TOP 10 CARDS (UPDATED FOR HEARTS) */
 .top10-card { flex: 0 0 320px; display: flex; align-items: center; position: relative; padding-left: 30px; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: pointer; scroll-snap-align: start; scroll-margin-left: 4%;}
 .top10-number { font-size: 280px; font-weight: 900; color: #0b0b0c; -webkit-text-stroke: 4px #444; position: absolute; left: -20px; bottom: -50px; z-index: 1; letter-spacing: -15px; transition: all 0.5s ease; text-shadow: 5px 5px 10px rgba(0,0,0,0.8); }
 .poster-wrapper { position: relative; z-index: 2; margin-left: 70px; transition: all 0.4s ease; display: flex; }
@@ -93,6 +159,7 @@ st.markdown("""
 .top10-card:hover img { border: 2px solid #E50914; box-shadow: 0 15px 35px rgba(229, 9, 20, 0.6); }
 .top10-card:hover .top10-number { color: rgba(229,9,20,0.1); -webkit-text-stroke: 4px #E50914; transform: scale(1.05) translateX(-10px); text-shadow: 0 0 20px rgba(229,9,20,0.4); }
 
+/* 9. SLEEK CINEMATIC SEARCH BAR */
 .stTextInput { position: absolute; top: 15px; right: 5%; width: 280px !important; z-index: 100 !important; pointer-events: auto;}
 .stTextInput input { color: white !important; background-color: rgba(0, 0, 0, 0.6) !important; border: 1px solid rgba(255, 255, 255, 0.2) !important; border-radius: 6px !important; padding: 12px 20px !important; font-size: 15px !important; transition: all 0.3s ease !important; }
 .stTextInput input::placeholder { color: rgba(255,255,255,0.4) !important; font-weight: 300 !important; }
@@ -138,6 +205,7 @@ st.markdown("""
 # --- SEARCH BAR WITH STATE TRACKING ---
 search_query = st.text_input("", placeholder="🔍 Search titles, genres, actors...", label_visibility="collapsed", key="search_query")
 
+# Update the URL so when you click a 'Like', it remembers what you searched for!
 if search_query:
     st.query_params["q"] = search_query
 elif "q" in st.query_params:
@@ -148,6 +216,7 @@ def render_movie_cards(recommendations, score_column, is_top_10=False):
     container_class = "scroll-container top10-scroll-row" if is_top_10 else "scroll-container"
     html_content = f'<div class="{container_class}">'
     
+    # Grab the current search parameter so it doesn't vanish when the page reloads
     current_q = st.session_state.get("search_query", "")
     q_param = f"&q={urllib.parse.quote(current_q)}" if current_q else ""
     
@@ -157,16 +226,19 @@ def render_movie_cards(recommendations, score_column, is_top_10=False):
         score = row.get(score_column, 85) 
         title_safe = str(title).replace('"', '&quot;')
         
+        # --- NEW: LIKE BUTTON URL INJECTION ---
         title_encoded = urllib.parse.quote(str(title))
         is_liked = title in st.session_state.liked_movies
         heart_icon = "❤️" if is_liked else "🤍"
         btn_class = "like-btn liked" if is_liked else "like-btn"
         
+        # When clicked, goes to /?like=MovieTitle&q=CurrentSearch
         like_url = f"/?like={title_encoded}{q_param}"
         like_html = f'<a href="{like_url}" target="_self" class="{btn_class}" title="Like {title_safe}">{heart_icon}</a>'
         
         if is_top_10:
             rank = i + 1
+            # Wrapped poster + heart in 'poster-wrapper' to keep heart locked to top right
             html_content += f'<div class="top10-card"><div class="top10-number">{rank}</div><div class="poster-wrapper">{like_html}<a href="{movie_link}" target="_blank"><img src="{poster_url}" alt="{title_safe}"></a></div></div>'
         else:
             html_content += f'<div class="movie-card" title="{title_safe} - {score:.0f}% Match">{like_html}<a href="{movie_link}" target="_blank"><img src="{poster_url}" alt="{title_safe}"></a></div>'
@@ -177,31 +249,14 @@ def render_movie_cards(recommendations, score_column, is_top_10=False):
 # --- RESULTS SECTION ---
 if search_query:
     with st.spinner('Curating cinematic experience...'):
-        
-        # --- 1. SMART TEXT CLEANER ---
-        clean_query = search_query.lower()
-        fillers = [r'\bmovies\b', r'\bmovie\b', r'\brelated\b', r'\babout\b', r'\bshow\b', r'\bme\b', r'\bfind\b', r'\bi\b', r'\bwant\b', r'\bto\b', r'\bwatch\b', r'\bsome\b', r'\ba\b', r'\bthe\b']
-        for filler in fillers:
-            clean_query = re.sub(filler, '', clean_query).strip()
-            
-        # Remove duplicate words (e.g., "car car" becomes just "car")
-        words = clean_query.split()
-        clean_query = " ".join(sorted(set(words), key=words.index))
-        
-        if not clean_query:
-            clean_query = search_query
-
-        # --- 2. THE AI DECISION MAKER (Title vs. Topic) ---
-        exact_title = movies[movies['title'].str.lower() == clean_query]
-        
-        query_vec = tfidf.transform([clean_query])
+        query_vec = tfidf.transform([search_query])
         sim_scores = cosine_similarity(query_vec, tfidf_matrix).flatten()
+        
         best_match_idx = sim_scores.argmax()
         best_score = sim_scores[best_match_idx]
         
-        # If they typed an exact title, or the AI is highly confident (> 0.35 score)
-        if not exact_title.empty or best_score > 0.35:
-            selected_movie = exact_title.iloc[0]['title'] if not exact_title.empty else movies.iloc[best_match_idx]['title']
+        if best_score > 0:
+            selected_movie = movies.iloc[best_match_idx]['title']
             hero_poster, hero_overview, hero_link = fetch_movie_details(selected_movie)
             
             st.markdown(f"""
@@ -224,6 +279,7 @@ if search_query:
 </div>
 """, unsafe_allow_html=True)
             
+            # --- MAIN MOVIE LIKE BUTTON ---
             st.write("") 
             col1, col2, col3 = st.columns([2, 6, 2])
             with col2:
@@ -236,6 +292,7 @@ if search_query:
                         st.session_state.liked_movies.append(selected_movie)
                     st.rerun() 
 
+            # --- PERSONALIZED RECOMMENDATIONS ---
             if st.session_state.liked_movies:
                 st.markdown('<div class="category-header">❤️ Because of your Liked Movies</div>', unsafe_allow_html=True)
                 profile_recs = get_profile_based_recs(st.session_state.liked_movies)
@@ -251,35 +308,16 @@ if search_query:
             st.markdown('<div class="category-header">AI Predictions: You\'ll Love These</div>', unsafe_allow_html=True)
             render_movie_cards(get_hybrid_recs(selected_movie), 'Hybrid_Score')
 
-        # --- 3. TOPIC SEARCH MODE (If score is low, show a grid instead of a Hero Banner) ---
         else:
-            st.markdown(f"""
-            <div class="hero-container" style="height: 35vh; min-height: 250px;">
-                <div class="hero-bg-glow" style="background-image: url('https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?q=80&w=2070'); opacity: 0.3;"></div>
-                <div class="hero-content" style="width: 100%; text-align: center; margin-top: 0; padding: 0;">
-                    <div class="hero-title" style="font-size: 3.5rem;">Results for "{clean_query.title()}"</div>
-                    <div class="hero-desc" style="max-width: 100%;">Exploring the global database for your topic...</div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            # Use TMDB for topic searches because it's much smarter!
-            topic_results = search_tmdb_topic(clean_query)
+            st.warning(f"Searching global TMDB library for topic: '{search_query}'")
+            topic_results = search_tmdb_topic(search_query)
             
             if topic_results:
-                st.markdown('<div class="category-header">Global Topic Matches</div>', unsafe_allow_html=True)
+                st.markdown('<div class="category-header">Global Search Results</div>', unsafe_allow_html=True)
                 topic_df = pd.DataFrame(topic_results)
                 render_movie_cards(topic_df, 'score')
-                
-                # Show our local AI's best guess too
-                if best_score > 0.05:
-                    st.markdown('<div class="category-header">From our Local Library</div>', unsafe_allow_html=True)
-                    top_indices = sim_scores.argsort()[::-1][:15]
-                    local_recs = movies.iloc[top_indices].copy()
-                    local_recs['score'] = sim_scores[top_indices] * 100
-                    render_movie_cards(local_recs, 'score')
             else:
-                st.error("No movies found for that search. Try another keyword!")
+                st.error("No movies found for that search.")
 
 else:
     # --- HOME SCREEN ---
