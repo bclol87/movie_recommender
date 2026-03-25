@@ -2,7 +2,8 @@ import streamlit as st
 import streamlit.components.v1 as components
 from sklearn.metrics.pairwise import cosine_similarity
 import pandas as pd
-import urllib.parse 
+import urllib.parse
+import re 
 
 # --- MAGIC STEP: Import our functions from our new logic file ---
 from movie_logic import (
@@ -64,6 +65,10 @@ st.markdown("""
 .btn-play:hover { background-color: #E50914; color: white; transform: scale(1.05); }
 .btn-info { background-color: rgba(109, 109, 110, 0.6); color: white; backdrop-filter: blur(8px); }
 .btn-info:hover { background-color: rgba(255, 255, 255, 0.25); transform: scale(1.05); }
+/* Specific styling for the Hero Like Button to make it pop slightly more */
+.btn-hero-like { background-color: rgba(109, 109, 110, 0.6); color: white; backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.4) !important;}
+.btn-hero-like:hover { background-color: rgba(255, 255, 255, 0.25); border-color: #E50914 !important; transform: scale(1.05); }
+.btn-hero-like.liked { border-color: #E50914 !important; }
 
 .hero-poster-box { position: relative; z-index: 2; width: 45%; display: flex; justify-content: center; align-items: center; padding-right: 5%; margin-top: 60px; animation: slideUpFade 1.2s ease-out; }
 .hero-poster-box img { height: 55vh; border-radius: 12px; border: 1px solid rgba(255,255,255,0.15); animation: floatPoster 6s ease-in-out infinite;  }
@@ -158,17 +163,14 @@ def render_movie_cards(recommendations, score_column, is_top_10=False):
         
         is_liked = title in st.session_state.liked_movies
         future_likes = st.session_state.liked_movies.copy()
-        
         if is_liked:
             future_likes.remove(title)
         else:
             future_likes.append(title)
             
         likes_str = "|".join(future_likes)
-        
         heart_icon = "❤️" if is_liked else "🤍"
         btn_class = "like-btn liked" if is_liked else "like-btn"
-        
         like_url = f"/?likes={urllib.parse.quote(likes_str)}{q_param}"
         like_html = f'<a href="{like_url}" target="_self" class="{btn_class}" title="Like {title_safe}">{heart_icon}</a>'
         
@@ -184,15 +186,47 @@ def render_movie_cards(recommendations, score_column, is_top_10=False):
 # --- RESULTS SECTION ---
 if search_query:
     with st.spinner('Curating cinematic experience...'):
-        query_vec = tfidf.transform([search_query])
-        sim_scores = cosine_similarity(query_vec, tfidf_matrix).flatten()
         
+        # --- 1. SMART TEXT CLEANER ---
+        clean_query = search_query.lower()
+        fillers = [r'\bmovies\b', r'\bmovie\b', r'\brelated\b', r'\babout\b', r'\bshow\b', r'\bme\b', r'\bfind\b', r'\bi\b', r'\bwant\b', r'\bto\b', r'\bwatch\b', r'\bsome\b', r'\ba\b', r'\bthe\b']
+        for filler in fillers:
+            clean_query = re.sub(filler, '', clean_query).strip()
+            
+        words = clean_query.split()
+        clean_query = " ".join(sorted(set(words), key=words.index))
+        
+        if not clean_query:
+            clean_query = search_query
+
+        # --- 2. THE AI DECISION MAKER ---
+        exact_title = movies[movies['title'].str.lower() == clean_query]
+        
+        query_vec = tfidf.transform([clean_query])
+        sim_scores = cosine_similarity(query_vec, tfidf_matrix).flatten()
         best_match_idx = sim_scores.argmax()
         best_score = sim_scores[best_match_idx]
         
-        if best_score > 0:
-            selected_movie = movies.iloc[best_match_idx]['title']
+        if not exact_title.empty or best_score > 0.35:
+            selected_movie = exact_title.iloc[0]['title'] if not exact_title.empty else movies.iloc[best_match_idx]['title']
             hero_poster, hero_overview, hero_link = fetch_movie_details(selected_movie)
+            
+            # --- NEW: GENERATE THE URL FOR THE HERO LIKE BUTTON ---
+            is_hero_liked = selected_movie in st.session_state.liked_movies
+            hero_future_likes = st.session_state.liked_movies.copy()
+            if is_hero_liked:
+                hero_future_likes.remove(selected_movie)
+            else:
+                hero_future_likes.append(selected_movie)
+                
+            hero_likes_str = "|".join(hero_future_likes)
+            current_q = st.session_state.get("search_query", "")
+            q_param = f"&q={urllib.parse.quote(current_q)}" if current_q else ""
+            hero_like_url = f"/?likes={urllib.parse.quote(hero_likes_str)}{q_param}"
+            
+            hero_heart = "❤️" if is_hero_liked else "🤍"
+            hero_like_text = "Liked" if is_hero_liked else "Like"
+            hero_btn_class = "btn-hero-like liked" if is_hero_liked else "btn-hero-like"
             
             st.markdown(f"""
 <div class="hero-container">
@@ -206,6 +240,11 @@ if search_query:
 <button class="btn-play">▶ Play</button>
 </a>
 <button class="btn-info">ⓘ More Info</button>
+
+<a href="{hero_like_url}" target="_self" style="text-decoration:none;">
+<button class="btn-hero-like {hero_btn_class}">{hero_heart} {hero_like_text}</button>
+</a>
+
 </div>
 </div>
 <div class="hero-poster-box">
@@ -213,29 +252,14 @@ if search_query:
 </div>
 </div>
 """, unsafe_allow_html=True)
-            
-            st.write("") 
-            col1, col2, col3 = st.columns([2, 6, 2])
-            with col2:
-                is_hero_liked = selected_movie in st.session_state.liked_movies
-                btn_text = f"💔 Unlike '{selected_movie}'" if is_hero_liked else f"❤️ Like '{selected_movie}' to improve recommendations"
-                if st.button(btn_text, use_container_width=True):
-                    if is_hero_liked:
-                        st.session_state.liked_movies.remove(selected_movie)
-                    else:
-                        st.session_state.liked_movies.append(selected_movie)
-                    st.rerun() 
 
-            # --- PERSONALIZED RECOMMENDATIONS SECTION ---
             if st.session_state.liked_movies:
-                # 1. SHOW THE USER'S LIKED COLLECTION FIRST
                 st.markdown('<div class="category-header">🎬 Your Liked Collection</div>', unsafe_allow_html=True)
                 liked_df = movies[movies['title'].isin(st.session_state.liked_movies)].copy()
                 if not liked_df.empty:
-                    liked_df['My_Score'] = 100 # Add a dummy score column to prevent rendering errors
+                    liked_df['My_Score'] = 100 
                     render_movie_cards(liked_df, 'My_Score')
 
-                # 2. SHOW THE RECOMMENDATIONS BASED ON LIKES
                 st.markdown('<div class="category-header">❤️ Because of your Liked Movies</div>', unsafe_allow_html=True)
                 profile_recs = get_profile_based_recs(st.session_state.liked_movies)
                 if not profile_recs.empty:
@@ -251,15 +275,31 @@ if search_query:
             render_movie_cards(get_hybrid_recs(selected_movie), 'Hybrid_Score')
 
         else:
-            st.warning(f"Searching global TMDB library for topic: '{search_query}'")
-            topic_results = search_tmdb_topic(search_query)
+            st.markdown(f"""
+            <div class="hero-container" style="height: 35vh; min-height: 250px;">
+                <div class="hero-bg-glow" style="background-image: url('https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?q=80&w=2070'); opacity: 0.3;"></div>
+                <div class="hero-content" style="width: 100%; text-align: center; margin-top: 0; padding: 0;">
+                    <div class="hero-title" style="font-size: 3.5rem;">Results for "{clean_query.title()}"</div>
+                    <div class="hero-desc" style="max-width: 100%;">Exploring the global database for your topic...</div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            topic_results = search_tmdb_topic(clean_query)
             
             if topic_results:
-                st.markdown('<div class="category-header">Global Search Results</div>', unsafe_allow_html=True)
+                st.markdown('<div class="category-header">Global Topic Matches</div>', unsafe_allow_html=True)
                 topic_df = pd.DataFrame(topic_results)
                 render_movie_cards(topic_df, 'score')
+                
+                if best_score > 0.05:
+                    st.markdown('<div class="category-header">From our Local Library</div>', unsafe_allow_html=True)
+                    top_indices = sim_scores.argsort()[::-1][:15]
+                    local_recs = movies.iloc[top_indices].copy()
+                    local_recs['score'] = sim_scores[top_indices] * 100
+                    render_movie_cards(local_recs, 'score')
             else:
-                st.error("No movies found for that search.")
+                st.error("No movies found for that search. Try another keyword!")
 
 else:
     # --- HOME SCREEN ---
@@ -273,16 +313,13 @@ else:
 </div>
 """, unsafe_allow_html=True)
 
-    # --- HOME SCREEN PERSONALIZED SECTION ---
     if st.session_state.liked_movies:
-        # 1. SHOW THE USER'S LIKED COLLECTION FIRST
         st.markdown('<div class="category-header">🎬 Your Liked Collection</div>', unsafe_allow_html=True)
         liked_df = movies[movies['title'].isin(st.session_state.liked_movies)].copy()
         if not liked_df.empty:
             liked_df['My_Score'] = 100
             render_movie_cards(liked_df, 'My_Score')
 
-        # 2. SHOW THE RECOMMENDATIONS BASED ON LIKES
         st.markdown('<div class="category-header">❤️ For You (Based on your Likes)</div>', unsafe_allow_html=True)
         profile_recs = get_profile_based_recs(st.session_state.liked_movies)
         if not profile_recs.empty:
