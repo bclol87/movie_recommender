@@ -135,7 +135,7 @@ components.html(
 # --- NAVIGATION BAR ---
 st.markdown("""
 <div class="navbar">
-<div class="logo">CineMatch</div>
+<div class="logo">TarFlix</div>
 </div>
 """, unsafe_allow_html=True)
 
