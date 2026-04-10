@@ -14,7 +14,7 @@ from movie_logic import (
 )
 
 # --- PAGE CONFIGURATION ---
-st.set_page_config(page_title="CineMatch Pro", page_icon="🍿", layout="wide")
+st.set_page_config(page_title="Tarflix Pro", page_icon="🍿", layout="wide")
 
 # --- SESSION STATE INITIALIZATION (MEMORY BANK) ---
 if 'liked_movies' not in st.session_state:
@@ -50,8 +50,14 @@ st.markdown("""
 }
 
 .navbar { display: flex; align-items: center; justify-content: space-between; padding: 25px 5%; background: linear-gradient(to bottom, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.4) 50%, rgba(0, 0, 0, 0) 100%); margin-bottom: -100px; position: relative; z-index: 50; animation: slideUpFade 0.8s ease-out; pointer-events: none; }
-.logo { color: #E50914; font-size: 38px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; text-shadow: 0px 0px 20px rgba(229, 9, 20, 0.6); transition: transform 0.3s ease, text-shadow 0.3s ease; cursor: pointer; pointer-events: auto; }
-.logo:hover { transform: scale(1.05); text-shadow: 0px 0px 25px rgba(229, 9, 20, 1); }
+
+/* --- HIDDEN DEVELOPER EASTER EGG CSS --- */
+.logo-container { position: relative; display: inline-flex; flex-direction: column; align-items: center; cursor: pointer; pointer-events: auto; }
+.easter-egg { position: absolute; top: 15px; font-size: 13px; font-weight: 700; letter-spacing: 5px; color: transparent; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); text-transform: uppercase; z-index: 1; }
+.logo-container:hover .easter-egg { top: -18px; color: rgba(255, 255, 255, 0.8); text-shadow: 0 0 12px rgba(255,255,255,0.6); }
+.logo { color: #E50914; font-size: 38px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; text-shadow: 0px 0px 20px rgba(229, 9, 20, 0.6); transition: all 0.3s ease; position: relative; z-index: 2; }
+.logo-container:hover .logo { transform: scale(1.05); text-shadow: 0px 0px 25px rgba(229, 9, 20, 1); }
+/* --------------------------------------- */
 
 .hero-container { position: relative; width: 100%; height: 85vh; display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; overflow: hidden; background-color: #0b0b0c; border-bottom: 1px solid #1a1a1a; animation: slideUpFade 1s ease-out; }
 .hero-bg-glow { position: absolute; top: -10%; left: -10%; width: 120%; height: 120%; background-size: cover; background-position: center; background-repeat: no-repeat; filter: blur(45px) brightness(0.35); z-index: 0; }
@@ -65,7 +71,6 @@ st.markdown("""
 .btn-play:hover { background-color: #E50914; color: white; transform: scale(1.05); }
 .btn-info { background-color: rgba(109, 109, 110, 0.6); color: white; backdrop-filter: blur(8px); }
 .btn-info:hover { background-color: rgba(255, 255, 255, 0.25); transform: scale(1.05); }
-/* Specific styling for the Hero Like Button to make it pop slightly more */
 .btn-hero-like { background-color: rgba(109, 109, 110, 0.6); color: white; backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.4) !important;}
 .btn-hero-like:hover { background-color: rgba(255, 255, 255, 0.25); border-color: #E50914 !important; transform: scale(1.05); }
 .btn-hero-like.liked { border-color: #E50914 !important; }
@@ -132,10 +137,13 @@ components.html(
     height=0, width=0
 )
 
-# --- NAVIGATION BAR ---
+# --- NAVIGATION BAR WITH HIDDEN EASTER EGG ---
 st.markdown("""
 <div class="navbar">
-<div class="logo">TarFlix</div>
+    <div class="logo-container">
+        <div class="easter-egg">bclol87</div>
+        <div class="logo">TARFLIX</div>
+    </div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -211,7 +219,6 @@ if search_query:
             selected_movie = exact_title.iloc[0]['title'] if not exact_title.empty else movies.iloc[best_match_idx]['title']
             hero_poster, hero_overview, hero_link = fetch_movie_details(selected_movie)
             
-            # --- NEW: GENERATE THE URL FOR THE HERO LIKE BUTTON ---
             is_hero_liked = selected_movie in st.session_state.liked_movies
             hero_future_likes = st.session_state.liked_movies.copy()
             if is_hero_liked:
