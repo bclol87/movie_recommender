@@ -5,6 +5,7 @@ import pandas as pd
 import urllib.parse
 import re 
 
+# --- MAGIC STEP: Import our functions from our new logic file ---
 from movie_logic import (
     movies, cosine_sim, tfidf, tfidf_matrix,
     fetch_movie_details, search_tmdb_topic,
@@ -12,11 +13,14 @@ from movie_logic import (
     get_profile_based_recs 
 )
 
+# --- PAGE CONFIGURATION ---
 st.set_page_config(page_title="Tarflix Pro", page_icon="🍿", layout="wide")
 
+# --- SESSION STATE INITIALIZATION (MEMORY BANK) ---
 if 'liked_movies' not in st.session_state:
     st.session_state.liked_movies = []
 
+# --- MULTI-LIKE MEMORY FIX ---
 if "likes" in st.query_params:
     likes_str = urllib.parse.unquote(st.query_params["likes"])
     if likes_str:
@@ -30,6 +34,7 @@ if "likes" in st.query_params:
 if "q" in st.query_params and "search_query" not in st.session_state:
     st.session_state.search_query = st.query_params["q"]
 
+# --- CSS STYLING (Ultra-Premium Cinematic Theme) ---
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;700;900&display=swap');
@@ -46,11 +51,28 @@ st.markdown("""
 
 .navbar { display: flex; align-items: center; justify-content: space-between; padding: 25px 5%; background: linear-gradient(to bottom, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.4) 50%, rgba(0, 0, 0, 0) 100%); margin-bottom: -100px; position: relative; z-index: 50; animation: slideUpFade 0.8s ease-out; pointer-events: none; }
 
+/* --- HIDDEN DEVELOPER EASTER EGG CSS --- */
 .logo-container { position: relative; display: inline-flex; flex-direction: column; align-items: center; cursor: pointer; pointer-events: auto; }
-.easter-egg { position: absolute; top: 15px; font-size: 13px; font-weight: 700; letter-spacing: 5px; color: transparent; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); text-transform: uppercase; z-index: 1; }
+
+/* FIXED: Added 'width: max-content;' to force the text into one unbroken line */
+.easter-egg { 
+    position: absolute; 
+    top: 15px; 
+    font-size: 11px; 
+    font-weight: 700; 
+    letter-spacing: 3px; 
+    color: transparent; 
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+    text-transform: uppercase; 
+    z-index: 1; 
+    white-space: nowrap; 
+    width: max-content; 
+}
+
 .logo-container:hover .easter-egg { top: -18px; color: rgba(255, 255, 255, 0.8); text-shadow: 0 0 12px rgba(255,255,255,0.6); }
 .logo { color: #E50914; font-size: 38px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; text-shadow: 0px 0px 20px rgba(229, 9, 20, 0.6); transition: all 0.3s ease; position: relative; z-index: 2; }
 .logo-container:hover .logo { transform: scale(1.05); text-shadow: 0px 0px 25px rgba(229, 9, 20, 1); }
+/* --------------------------------------- */
 
 .hero-container { position: relative; width: 100%; height: 85vh; display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; overflow: hidden; background-color: #0b0b0c; border-bottom: 1px solid #1a1a1a; animation: slideUpFade 1s ease-out; }
 .hero-bg-glow { position: absolute; top: -10%; left: -10%; width: 120%; height: 120%; background-size: cover; background-position: center; background-repeat: no-repeat; filter: blur(45px) brightness(0.35); z-index: 0; }
@@ -102,6 +124,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# --- MAGIC JAVASCRIPT INJECTION ---
 components.html(
     """
     <script>
@@ -129,6 +152,7 @@ components.html(
     height=0, width=0
 )
 
+# --- NAVIGATION BAR WITH HIDDEN EASTER EGG ---
 st.markdown("""
 <div class="navbar">
     <div class="logo-container">
@@ -138,6 +162,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
+# --- SEARCH BAR WITH STATE TRACKING ---
 search_query = st.text_input("", placeholder="🔍 Search titles, genres, actors...", label_visibility="collapsed", key="search_query")
 
 if search_query:
@@ -145,6 +170,7 @@ if search_query:
 elif "q" in st.query_params:
     del st.query_params["q"]
 
+# --- HELPER FUNCTION TO RENDER UI CARDS ---
 def render_movie_cards(recommendations, score_column, is_top_10=False):
     container_class = "scroll-container top10-scroll-row" if is_top_10 else "scroll-container"
     html_content = f'<div class="{container_class}">'
@@ -180,9 +206,11 @@ def render_movie_cards(recommendations, score_column, is_top_10=False):
     html_content += '</div>'
     st.markdown(html_content, unsafe_allow_html=True)
 
+# --- RESULTS SECTION ---
 if search_query:
     with st.spinner('Curating cinematic experience...'):
         
+        # --- 1. SMART TEXT CLEANER ---
         clean_query = search_query.lower()
         fillers = [r'\bmovies\b', r'\bmovie\b', r'\brelated\b', r'\babout\b', r'\bshow\b', r'\bme\b', r'\bfind\b', r'\bi\b', r'\bwant\b', r'\bto\b', r'\bwatch\b', r'\bsome\b', r'\ba\b', r'\bthe\b']
         for filler in fillers:
@@ -193,7 +221,8 @@ if search_query:
         
         if not clean_query:
             clean_query = search_query
-            
+
+        # --- 2. THE AI DECISION MAKER ---
         exact_title = movies[movies['title'].str.lower() == clean_query]
         
         query_vec = tfidf.transform([clean_query])
@@ -295,6 +324,7 @@ if search_query:
                 st.error("No movies found for that search. Try another keyword!")
 
 else:
+    # --- HOME SCREEN ---
     st.markdown("""
 <div class="hero-container">
 <div class="hero-bg-glow" style="background-image: url('https://assets.nflxext.com/ffe/siteui/vlv3/1ecf18b2-adad-4684-bd9a-acab7f2a875f/728df0cc-b789-4bba-9ea7-626a5c2d36ab/MY-en-20230116-popsignuptwoweeks-perspective_alpha_website_medium.jpg'); opacity: 0.5;"></div>
