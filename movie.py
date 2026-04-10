@@ -132,7 +132,7 @@ components.html(
 st.markdown("""
 <div class="navbar">
     <div class="logo-container">
-        <div class="easter-egg">bclol87 jiawei6632 swi_10</div>
+        <div class="easter-egg">bclol87 &nbsp;|&nbsp; jiawei6632 &nbsp;|&nbsp; swi_10</div>
         <div class="logo">TARFLIX</div>
     </div>
 </div>
